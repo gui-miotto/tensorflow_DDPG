@@ -6,5 +6,5 @@ class BaseAgent:
     def act(self, state):
         raise NotImplementedError
 
-    def train_model(self, state, action, reward: float, next_state, done: bool):
+    def train(self, state, action, reward: float, next_state, done: bool):
         raise NotImplementedError
