@@ -7,23 +7,31 @@ class HierarchicalAgent(BaseAgent):
     def __init__(self,
                  state_space,
                  action_space,
-                 high_agent=BaseAgent,
-                 low_agent=BaseAgent,
-                 c=50):
+                 hi_agent=BaseAgent,
+                 lo_agent=BaseAgent,
+                 c=10):
+        # note, this will not work if initialised with 
+        # default parameters!
+        # high- and lo_agent need to be explicitly set
+
         # self.state_space = state_space
         # self.action_space = action_space
         super().__init__(state_space, action_space)
 
         # high level agent's actions will be states, i.e. goals for the LL agent
-        self.high_agent = high_agent(
+        self.hi_agent = hi_agent(
             state_space=state_space, action_space=state_space)
         
         # low level agent's states will be (state, goal) concatenated
-        self.low_agent = low_agent(
+        self.lo_agent = lo_agent(
             state_space=self.concat_boxes(state_space, state_space), action_space=action_space)
         
         self.c = c  # number of time steps between high level actions
         self.t = 0  # step counter
+
+        self.hi_rewards = 0 # collects rewads for HL agent, applied every c steps
+
+        self.hi_state = None # state in which HL agent last took an action
 
         # we won't need networks etc here
 
@@ -36,34 +44,45 @@ class HierarchicalAgent(BaseAgent):
 
     @staticmethod
     def intrinsic_reward(state, goal, action, next_state):
-        # as defined in HIRO paper
-        # remember, goal is defined 
+        # as defined in HIRO paper, eqn (3)
+        # difference: here we define goal as a state, not an increment
+        # action does not figure in the formula - this is apparently deliberate
+        # todo - make this a customisable function?
+
+        return -1 * np.linalg.norm(goal - next_state)
 
     def act(self, state):
         # is it time for a high-level action?
         if self.t % self.c == 0:
-            
-            # train HL agent
-            if self.t
-            high_agent.train(self.high_state, action, reward: float, next_state, done: bool)
 
-            # HL agent samples a new state from space and sets it as LL's goal
-            self.goal = self.high_agent.act(state)
-        
+            # HL agent picks a new state from space and sets it as LL's goal
+            self.goal = self.hi_agent.act(state)
+
+            # save for later training
+            self.hi_state = state
+
+            # since our goal is a state rather than an increment, a goal transition function h() should not be needed, right?
+
         # action in environment comes from low level agent
-        return self.low_agent.act(np.concat(state, self.goal))
+        return self.lo_agent.act(np.concatenate(state, self.goal))
 
     def train(self, state, action, reward: float, next_state, done: bool):
         
         # accumulate rewards for HL agent
+        self.hi_rewards += reward
 
-        # The higher-level controller provides the lower-level with an intrinsic reward 
-        # rt = r(st, gt, at, st+1)
-        # using a ﬁxed parameterized reward function r
+        # provide LL agent with intrinisic reward
+        lo_reward = self.intrinsic_reward(state, self.goal, action, next_state)
 
         # The lower-level policy will store the experience 
         # (st, gt, at, rt, st+1, h(st, gt, st+1)) 
         # for off-policy training.
-        self.low_agent.train(np.concat(state, self.goal), action, self.intrinsic_reward(state, self.goal, ))
+        # note: if the hi-agent picks a new goal in the next step, then this line will not be quite right.
+        # but maybe it's actually better this way...
 
-        raise NotImplementedError
+        self.lo_agent.train(np.concatenate(state, self.goal), action, lo_reward, np.concatenate(next_state, self.goal))
+
+        # is it time to train the HL agent?
+        if self.t % self.c == 0:
+            self.hi_agent.train(self.hi_state, self.goal, self.hi_rewards, next_state)
+            self.hi_rewards = 0
