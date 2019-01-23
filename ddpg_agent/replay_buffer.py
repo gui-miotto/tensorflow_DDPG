@@ -27,7 +27,7 @@ class ReplayBuffer():
         self.rewards.append(reward)
         self.done_flags.append(done_flag)
 
-    def len(self):
+    def __len__(self):
         """
         Returns how many transitions are currently stored in the buffer
         """
@@ -38,9 +38,9 @@ class ReplayBuffer():
         Returns a batch of transtions sampled from the buffer
         """
         # The size of the batch shouldn't be larger than the number of transitions currently stored in the buffer
-        b_size = self.batch_size if self.len() > self.batch_size else self.len()
+        b_size = self.batch_size if len(self) > self.batch_size else len(self)
         # Samples are chosen without replacement
-        pick = np.random.choice(self.len(), size=b_size, replace=False)
+        pick = np.random.choice(len(self), size=b_size, replace=False)
         sb = np.array(self.states_before)[pick]
         ac = np.array(self.actions)[pick]
         sa = np.array(self.states_after)[pick]
