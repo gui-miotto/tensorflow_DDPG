@@ -1,8 +1,7 @@
 import sys
 from continuous_cartpole import ContinuousCartPoleEnv
 import numpy as np
-from agent import BaseAgent
-
+from ddpg_agent.ddpg_agent import DDPGAgent
 
 if __name__ == "__main__":
     # In case of CartPole-v1, maximum length of episode is 500
@@ -12,7 +11,7 @@ if __name__ == "__main__":
     render = True
 
     # make agent
-    agent = BaseAgent(env.observation_space, env.action_space)
+    agent = DDPGAgent(env.observation_space, env.action_space)
 
     EPISODES = 1000 # todo
 
@@ -31,7 +30,3 @@ if __name__ == "__main__":
 
             score += reward
             state = next_state
-
-            if done:
-                pass
-                # do stuff
