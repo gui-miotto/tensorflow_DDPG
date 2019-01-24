@@ -26,7 +26,14 @@ if __name__ == "__main__":
 
             action = agent.act(state)
             next_state, reward, done, info = env.step(action)
+
+            # reward shaping ;-)
+            # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
+            # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
+            
             agent.train(state, action, reward, next_state, done)
 
             score += reward
             state = next_state
+        
+        print("Episode", e, "score", score)
