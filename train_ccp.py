@@ -21,6 +21,8 @@ if __name__ == "__main__":
     for e in range(EPISODES):
         done = False
         score = 0
+        loss_sum = 0
+        steps = 0
         state = env.reset()
     
         while not done:
@@ -34,9 +36,11 @@ if __name__ == "__main__":
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
             # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
             
-            agent.train(state, action, reward, next_state, done)
+            loss = agent.train(state, action, reward, next_state, done)
 
+            steps += 1
+            loss_sum += loss
             score += reward
             state = next_state
         
-        print("Episode", e, "score", score)
+        print("Episode", e, "score", score, steps, loss_sum / steps, agent.scale)
