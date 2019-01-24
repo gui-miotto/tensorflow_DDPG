@@ -69,7 +69,7 @@ class DDPGAgent(BaseAgent):
         # train critic
         ys = batch.rewards.reshape((-1, 1)) + self.discount_factor * values * ~(batch.done_flags.reshape((-1, 1)))
         xs = np.hstack((batch.states_before, batch.actions))
-        self.critic_behaviour.fit(xs, ys, verbose=0)
+        res = self.critic_behaviour.fit(xs, ys, verbose=0)
         
         # train actor
         session = tf.keras.backend.get_session()

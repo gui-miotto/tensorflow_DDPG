@@ -11,7 +11,7 @@ if __name__ == "__main__":
     # env = gym.make('CartPole-v1')
     # not compatible though - todo
     
-    render = True
+    render = False
 
     # make agent
     agent = DDPGAgent(env.observation_space, env.action_space)
