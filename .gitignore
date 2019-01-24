@@ -98,6 +98,11 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
+
+
+.vscode
+
+
 /site
 
 # mypy
