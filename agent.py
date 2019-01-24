@@ -6,7 +6,7 @@ class BaseAgent:
         self.state_space = state_space
         self.action_space = action_space
 
-    def act(self, state):
+    def act(self, state, training=False):
         """
         Generates actions from state
         state.shape should be: (batch, action_space.shape...)
