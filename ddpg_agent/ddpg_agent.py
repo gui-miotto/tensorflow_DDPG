@@ -104,7 +104,7 @@ class DDPGAgent(BaseAgent):
     def setup_critic(self):
         self.critic_behaviour = Sequential()
         self.critic_behaviour.add(Dense(50, input_dim=self.state_space.shape[0]+self.action_space.shape[0] , kernel_initializer='normal', activation='relu'))
-        self.critic_behaviour.add(Dense(1, kernel_initializer='normal', activation='tanh'))
+        self.critic_behaviour.add(Dense(1, kernel_initializer='normal'))
         adam = tf.keras.optimizers.Adam(self.learning_rate_critic)
         self.critic_behaviour.compile(loss='mean_squared_error', optimizer=adam)
 
