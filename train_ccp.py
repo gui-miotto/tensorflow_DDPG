@@ -1,8 +1,8 @@
-import select, sys, gym, os
+import select, sys, gym, os, time
+from datetime import timedelta
 import numpy as np
 from continuous_cartpole import ContinuousCartPoleEnv
 from ddpg_agent.ddpg_agent import DDPGAgent
-import time
 
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() 
@@ -35,12 +35,13 @@ def train_agent(n_episodes: int=1000, render: bool=False):
         state_space=env.observation_space, 
         action_space = env.action_space)
 
-    total_steps = 0
+    total_steps, ep = 0, 0
     time_begin = time.time()
 
-    for ep in range(n_episodes):
+    while ep < n_episodes:
         steps, score, loss_sum, done = 0, 0, 0, False
         state = env.reset()
+        ep += 1
 
         while not done and steps < max_steps_per_ep:
             if render:
@@ -72,10 +73,16 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                 elif line == 'q':
                     agent.save_model(saved_models_dir)
                     return
+                # 'm' for more episodes 
+                elif line == 'm':
+                    n_episodes += 100
+                # 'l' for less episodes 
+                elif line == 'l':
+                    n_episodes -= 100
                 # 'i' will increase the exploration factor
                 elif line == 'i':
                     agent.stdev_explore += 0.1
-                # 'd' will increase the exploration factor
+                # 'd' will decrease the exploration factor
                 elif line == 'd':
                     agent.stdev_explore -= 0.1
                 # 'z' will zero the exploration factor
@@ -86,14 +93,17 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                     print('eof')
                     #exit(0)
         
-        print(f'Episode {ep:4d} of {n_episodes}, score: {score}, steps: {steps:4d}, ' 
+        total_steps += steps
+        print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
             + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         
-        total_steps += steps
+        
 
     #print time statistics 
     time_end = time.time()
-    print('Time per step:', (time_end - time_begin) * 1000 / total_steps)
+    elapsed = time_end - time_begin
+    print('\nElapsed time:', str(timedelta(seconds=elapsed)))
+    print(f'Steps per second: {(total_steps / elapsed):.3f}\n')
 
     agent.save_model(saved_models_dir)
 
@@ -103,5 +113,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=1000, render=False)
+    train_agent(n_episodes=10, render=False)
     test_agent()
