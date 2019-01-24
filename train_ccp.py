@@ -1,12 +1,15 @@
 import sys
 from continuous_cartpole import ContinuousCartPoleEnv
 import numpy as np
+import gym
 from ddpg_agent.ddpg_agent import DDPGAgent
 
 if __name__ == "__main__":
     # In case of CartPole-v1, maximum length of episode is 500
-    env = ContinuousCartPoleEnv() # todo gym.make('CartPole-v1')
-    # get size of state and action from environment
+    env = ContinuousCartPoleEnv() 
+    # or
+    # env = gym.make('CartPole-v1')
+    # not compatible though - todo
     
     render = True
 
