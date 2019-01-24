@@ -1,13 +1,13 @@
-from agent import BaseAgent
+from agent import BaseAgent, HiAgent
 import gym
 import numpy as np
 
 
-class HierarchicalAgent(BaseAgent):
+class MetaAgent(BaseAgent):
     def __init__(self,
                  state_space,
                  action_space,
-                 hi_agent=BaseAgent,
+                 hi_agent=HiAgent,
                  lo_agent=BaseAgent,
                  c=10):
         # note, this will not work if initialised with 
@@ -57,6 +57,10 @@ class HierarchicalAgent(BaseAgent):
 
             # HL agent picks a new state from space and sets it as LL's goal
             self.goal = self.hi_agent.act(state)
+            
+            # these will record sequences necessary for off-policy relabelling later
+            self.lo_action_seq = []
+            self.lo_state_seq = []
 
             # save for later training
             self.hi_state = state
@@ -64,7 +68,12 @@ class HierarchicalAgent(BaseAgent):
             # since our goal is a state rather than an increment, a goal transition function h() should not be needed, right?
 
         # action in environment comes from low level agent
-        return self.lo_agent.act(np.concatenate(state, self.goal))
+        lo_action = self.lo_agent.act(np.concatenate(state, self.goal))
+
+        self.lo_state_seq.append(state)
+        self.lo_action_seq.append(lo_action)
+
+        return lo_action
 
     def train(self, state, action, reward: float, next_state, done: bool):
         
@@ -80,9 +89,11 @@ class HierarchicalAgent(BaseAgent):
         # note: if the hi-agent picks a new goal in the next step, then this line will not be quite right.
         # but maybe it's actually better this way...
 
-        self.lo_agent.train(np.concatenate(state, self.goal), action, lo_reward, np.concatenate(next_state, self.goal))
+        self.lo_agent.train(np.concatenate(state, self.goal), action, lo_reward, np.concatenate(next_state, self.goal), done, relabel=False)
+
+        # TODO: create lo_state_seq, lo_action_seq
 
         # is it time to train the HL agent?
         if self.t % self.c == 0:
-            self.hi_agent.train(self.hi_state, self.goal, self.hi_rewards, next_state)
+            self.hi_agent.train(self.hi_state, self.goal, self.hi_rewards, next_state, done, relabel=True, lo_state_seq=lo_state_seq, lo_action_seq=lo_action_seq, lo_current_policy=lo_agent.act)
             self.hi_rewards = 0
