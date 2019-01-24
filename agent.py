@@ -81,6 +81,8 @@ class HiAgent(BaseAgent):
             else: 
                 transition_tuple = ...
 
+        Note: this currently only works with individual tuples, not minibatches of them (todo?)
+
         Parameters
         ----------
 
