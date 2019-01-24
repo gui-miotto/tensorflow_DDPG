@@ -24,7 +24,7 @@ if __name__ == "__main__":
             if render:
                 env.render()
 
-            action = agent.act(state)
+            action = agent.act(state, training=True)
             next_state, reward, done, info = env.step(action)
 
             # reward shaping ;-)

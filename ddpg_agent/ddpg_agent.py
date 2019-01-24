@@ -46,8 +46,12 @@ class DDPGAgent(BaseAgent):
 
         if training:
             # todo ornstein uhlenbeck?
-            action += np.random.normal(scale=10)
+            action += np.random.normal(scale=1)
+
+            #if np.random.rand() > 0.7:
+            #    action = -action
         
+        #print(action)
         return np.clip(action, self.action_space.low, self.action_space.high)
         
 
@@ -91,7 +95,7 @@ class DDPGAgent(BaseAgent):
     def setup_actor(self):
         self.actor_behaviour = Sequential()
         self.actor_behaviour.add(Dense(50, input_dim=self.state_space.shape[0], kernel_initializer='normal', activation='relu'))
-        self.actor_behaviour.add(Dense(1, kernel_initializer='normal'))
+        self.actor_behaviour.add(Dense(1, kernel_initializer='normal', activation='tanh'))
         adam = tf.keras.optimizers.Adam(self.learning_rate_actor)
         self.actor_behaviour.compile(loss='mean_squared_error', optimizer=adam)
         
@@ -100,7 +104,7 @@ class DDPGAgent(BaseAgent):
     def setup_critic(self):
         self.critic_behaviour = Sequential()
         self.critic_behaviour.add(Dense(50, input_dim=self.state_space.shape[0]+self.action_space.shape[0] , kernel_initializer='normal', activation='relu'))
-        self.critic_behaviour.add(Dense(1, kernel_initializer='normal'))
+        self.critic_behaviour.add(Dense(1, kernel_initializer='normal', activation='tanh'))
         adam = tf.keras.optimizers.Adam(self.learning_rate_critic)
         self.critic_behaviour.compile(loss='mean_squared_error', optimizer=adam)
 
