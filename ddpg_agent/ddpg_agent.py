@@ -91,7 +91,7 @@ class DDPGAgent(BaseAgent):
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
     def act(self, state, explore=False):
-        action = self.actor_behaviour.predict(state.reshape(-1,*self.state_space.shape))[0]
+        action = self.actor_behaviour.predict(state.reshape(-1, *self.state_space.shape))[0]
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(scale=self.stdev_explore)
