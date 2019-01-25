@@ -149,3 +149,8 @@ class ContinuousCartPoleEnv(gym.Env):
 
 def angle_normalize(x):
     return (((x+np.pi) % (2*np.pi)) - np.pi)
+
+# tests and shit
+env = ContinuousCartPoleEnv()
+
+print (env.unwrapped.observation_space)
