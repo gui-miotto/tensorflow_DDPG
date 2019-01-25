@@ -63,35 +63,38 @@ def train_agent(n_episodes: int=1000, render: bool=False):
             score += reward
             state = next_state
 
-            # check user keyboard commands
-            while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
-                line = sys.stdin.readline().strip()
-                # 'r' will toggle the render flag
-                if line == 'r':
-                    render = not render
-                # 'q' will save the models and and training
-                elif line == 'q':
-                    agent.save_model(saved_models_dir)
-                    return
-                # 'm' for more episodes 
-                elif line == 'm':
-                    n_episodes += 100
-                # 'l' for less episodes 
-                elif line == 'l':
-                    n_episodes -= 100
-                # 'i' will increase the exploration factor
-                elif line == 'i':
-                    agent.stdev_explore += 0.1
-                # 'd' will decrease the exploration factor
-                elif line == 'd':
-                    agent.stdev_explore -= 0.1
-                # 'z' will zero the exploration factor
-                elif line == 'z':
-                    agent.stdev_explore = 0.0
-                # an empty line means stdin has been closed
-                else: 
-                    print('eof')
-                    #exit(0)
+            if False: #TODO - check if on *ux
+                # check user keyboard commands
+                while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                    line = sys.stdin.readline().strip()
+                    # 'r' will toggle the render flag
+                    if line == 'r':
+                        render = not render
+                    # 'q' will save the models and and training
+                    elif line == 'q':
+                        agent.save_model(saved_models_dir)
+                        return
+                    # 'm' for more episodes 
+                    elif line == 'm':
+                        n_episodes += 100
+                    # 'l' for less episodes 
+                    elif line == 'l':
+                        n_episodes -= 100
+                    # 'i' will increase the exploration factor
+                    elif line == 'i':
+                        agent.stdev_explore += 0.1
+                    # 'd' will decrease the exploration factor
+                    elif line == 'd':
+                        agent.stdev_explore -= 0.1
+                    # 'z' will zero the exploration factor
+                    elif line == 'z':
+                        agent.stdev_explore = 0.0
+                    # an empty line means stdin has been closed
+                    else: 
+                        print('eof')
+                        #exit(0)
+
+        
         total_steps += steps
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
             + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
