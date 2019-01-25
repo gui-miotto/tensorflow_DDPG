@@ -3,7 +3,7 @@ from ddpg_agent.replay_buffer import ReplayBuffer
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Flatten
 import os
 
 class DDPGAgent(BaseAgent):
@@ -39,7 +39,7 @@ class DDPGAgent(BaseAgent):
         **kwargs) -> 'DDPGAgent':
 
         # Get dimensionality of action/state space
-        state_dim = kwargs['state_space'].shape[0]
+        state_dim = np.prod(kwargs['state_space'].shape) #because this is now (2,4) for a LoAgent
         n_actions = kwargs['action_space'].shape[0]
 
         # Create actor_behaviour network
@@ -56,7 +56,7 @@ class DDPGAgent(BaseAgent):
         # Create actor_behaviour network
         adam_crit = tf.keras.optimizers.Adam(learning_rate_critic)
         crit_behav = Sequential()
-        crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu'))
+        crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu')) #TODO for 2d actions
         crit_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
         crit_behav.add(Dense(1, kernel_initializer='normal'))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
@@ -90,34 +90,50 @@ class DDPGAgent(BaseAgent):
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
+    def reshape_input(self, state, action=None):
+        flat_input = state.reshape(state.shape[0], -1)
+        if action is not None:
+            flat_action = action.reshape(np.prod(action.shape))
+            flat_input = np.hstack((flat_input, flat_action))
+        return flat_input
+
     def act(self, state, explore=False):
-        action = self.actor_behaviour.predict(state.reshape(-1, *self.state_space.shape))[0]
+        action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
         return np.clip(action, self.action_space.low, self.action_space.high)
         
-    def train(self, state, action, reward: float, next_state, done: bool):
+    def train(self,
+              state,
+              action,
+              reward: float,
+              next_state,
+              done: bool,
+              relabel=False,
+              lo_state_seq=None,
+              lo_action_seq=None,
+              lo_current_policy=None):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
         self.replay_buffer.add(state, action, next_state, reward, done)
         #sample a batch
         batch = self.replay_buffer.sample_batch()
         # ask actor target network for actions ...
-        target_actions = self.actor_target.predict(batch.states_after)
+        target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))
         # ask critic target for values of these actions
-        values = self.critic_target.predict(np.hstack((batch.states_after, target_actions)))
+        values = self.critic_target.predict(self.reshape_input(batch.states_after, target_actions))
         # train critic
         ys = batch.rewards.reshape((-1, 1)) + self.discount_factor * values * ~(batch.done_flags.reshape((-1, 1)))
-        xs = np.hstack((batch.states_before, batch.actions))
+        xs = self.reshape_input(batch.states_before, batch.actions)
         info = self.critic_behaviour.fit(xs, ys, verbose=0)
         # train actor
         session = tf.keras.backend.get_session()
-        behaviour_actions = self.actor_behaviour.predict(batch.states_before)
+        behaviour_actions = self.actor_behaviour.predict(self.reshape_input(batch.states_before))
         session.run([self.train_actor_op], {
-            self.critic_behaviour.input: np.hstack((batch.states_before, behaviour_actions)),
-            self.actor_behaviour.input: batch.states_before
+            self.critic_behaviour.input: self.reshape_input(batch.states_before, behaviour_actions),
+            self.actor_behaviour.input: self.reshape_input(batch.states_before)
         })
 
         def update_target_weights(behaviour, target):
@@ -129,8 +145,9 @@ class DDPGAgent(BaseAgent):
         # slowly update target weights for actor and critic
         update_target_weights(self.actor_behaviour, self.actor_target)
         update_target_weights(self.critic_behaviour, self.critic_target)
-
-        return info.history['loss'][0]
+        
+        loss = info.history['loss'][0]
+        return loss
     
     def save_model(self, filepath:str):
         if not os.path.exists(filepath):

@@ -1,7 +1,7 @@
 from agent import BaseAgent, HiAgent
 import gym
 import numpy as np
-
+from copy import deepcopy
 import agent
 
 
@@ -25,12 +25,15 @@ class MetaAgent(BaseAgent):
         super().__init__(state_space, action_space)
 
         # high level agent's actions will be states, i.e. goals for the LL agent
-        self.hi_agent = hi_agent(
+        self.hi_agent = hi_agent.new_trainable_agent(
             state_space=state_space, action_space=state_space)
 
+        lo_state_space = deepcopy(state_space)
+        lo_state_space.shape = (2, *state_space.shape)
+
         # low level agent's states will be (state, goal) concatenated
-        self.lo_agent = lo_agent(
-            state_space=(2, *state_space.shape), action_space=action_space)
+        self.lo_agent = lo_agent.new_trainable_agent(
+            state_space=lo_state_space, action_space=action_space)
 
         self.c = c  # number of time steps between high level actions
         self.t = 0  # step counter (resets after every c steps)
@@ -56,14 +59,14 @@ class MetaAgent(BaseAgent):
         """
         return -1 * np.linalg.norm(goal - next_state)
 
-    def act(self, state, training=False):
+    def act(self, state, explore=False):
 
         # is it time for a high-level action?
         if self.t % self.c == 0:
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.goal = self.hi_agent.act(state, training)
+            self.goal = self.hi_agent.act(state, explore)
 
             # save for later training
             self.hi_state = state
@@ -71,7 +74,7 @@ class MetaAgent(BaseAgent):
             # since our goal is a state rather than an increment, a goal transition function h() should not be needed, right?
 
         # action in environment comes from low level agent
-        lo_action = self.lo_agent.act(np.stack([state, self.goal]), training)
+        lo_action = self.lo_agent.act(np.stack([state, self.goal]), explore)
 
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action
@@ -94,7 +97,7 @@ class MetaAgent(BaseAgent):
         # note: if the hi-agent picks a new goal in the next step, then this line will not be quite right.
         # but maybe it's actually better this way...
 
-        self.lo_agent.train(
+        lo_loss = self.lo_agent.train(
             np.stack([state, self.goal]),
             action,
             lo_reward,
@@ -104,7 +107,7 @@ class MetaAgent(BaseAgent):
 
         # is it time to train the HL agent?
         if self.t % self.c == 0:
-            self.hi_agent.train(
+            hi_loss = self.hi_agent.train(
                 self.hi_state,
                 self.goal,
                 self.hi_rewards,
@@ -117,3 +120,5 @@ class MetaAgent(BaseAgent):
 
             # reset this
             self.hi_rewards = 0
+
+        return lo_loss #(lo_loss, hi_loss)
