@@ -113,5 +113,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=10, render=False)
+    train_agent(n_episodes=1000, render=False)
     test_agent()

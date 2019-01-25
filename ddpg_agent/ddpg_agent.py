@@ -75,7 +75,7 @@ class DDPGAgent(BaseAgent):
         session.run(tf.global_variables_initializer())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=10000,batch_size=batch_size)
+        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
@@ -91,7 +91,7 @@ class DDPGAgent(BaseAgent):
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
     def act(self, state, explore=False):
-        action = self.actor_behaviour.predict(state.reshape(1,-1))[0]
+        action = self.actor_behaviour.predict(state.reshape(-1,*self.state_space.shape))[0]
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(scale=self.stdev_explore)
