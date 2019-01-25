@@ -74,7 +74,9 @@ class MetaAgent(BaseAgent):
             # since our goal is a state rather than an increment, a goal transition function h() should not be needed, right?
 
         # action in environment comes from low level agent
-        lo_action = self.lo_agent.act(np.concatenate([state, self.goal], 0), explore)
+        goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
+        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
+        
 
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action
@@ -98,10 +100,10 @@ class MetaAgent(BaseAgent):
         # but maybe it's actually better this way...
 
         lo_loss = self.lo_agent.train(
-            np.stack([state, self.goal]),
+            np.concatenate([state, self.goal], axis=1),
             action,
             lo_reward,
-            np.stack([next_state, self.goal]),
+            np.concatenate([next_state, self.goal], axis=1),
             done,
             relabel=False)
 

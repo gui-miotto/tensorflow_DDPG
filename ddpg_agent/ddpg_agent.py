@@ -47,7 +47,7 @@ class DDPGAgent(BaseAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(1, kernel_initializer='normal', activation='tanh'))
+        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
         # Create actor_target network. At first, it is just a copy of actor_behaviour
@@ -90,23 +90,29 @@ class DDPGAgent(BaseAgent):
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
-    def reshape_input(self, state, action=None):
-        if state.ndim == 1:
-            flat_input = np.expand_dims(state, 0)
-        else:
-            flat_input = state.reshape(state.shape[0], -1)
-        if action is not None:
-            flat_action = action.reshape(action.shape[0], -1)
-            flat_input = np.hstack((flat_input, flat_action))
-        return flat_input
+    # def reshape_input(self, state, action=None):
+    #     if state.ndim == 1:
+    #         flat_input = np.expand_dims(state, 0)
+    #     else:
+    #         flat_input = state.reshape(state.shape[0], -1)
+    #     if action is not None:
+    #         flat_action = action.reshape(action.shape[0], -1)
+    #         flat_input = np.hstack((flat_input, flat_action))
+    #     return flat_input
 
     def act(self, state, explore=False):
-        action = self.actor_behaviour.predict(self.reshape_input(state))[0]
+        # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
+        action = self.actor_behaviour.predict(state)
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
-        return np.clip(action, self.action_space.low, self.action_space.high)
+        
+        final_action = np.clip(action, self.action_space.low, self.action_space.high)
+
+        assert not np.isnan(final_action).any()
+
+        return final_action 
         
     def train(self,
               state,
@@ -120,23 +126,28 @@ class DDPGAgent(BaseAgent):
               lo_current_policy=None):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
-        self.replay_buffer.add(state, action, next_state, reward, done)
+        self.replay_buffer.add(np.squeeze(state, axis=0), np.squeeze(action, axis=0), np.squeeze(next_state, axis=0), reward, done)
         #sample a batch
         batch = self.replay_buffer.sample_batch()
         # ask actor target network for actions ...
-        target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))
+        # target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))
+        target_actions = self.actor_target.predict(batch.states_after)
         # ask critic target for values of these actions
-        values = self.critic_target.predict(self.reshape_input(batch.states_after, target_actions))
+        # values = self.critic_target.predict(self.reshape_input(batch.states_after, target_actions))
+        values = self.critic_target.predict(np.concatenate((batch.states_after, target_actions), axis=1))
         # train critic
         ys = batch.rewards.reshape((-1, 1)) + self.discount_factor * values * ~(batch.done_flags.reshape((-1, 1)))
-        xs = self.reshape_input(batch.states_before, batch.actions)
+        xs = np.concatenate([batch.states_before, batch.actions], axis=1)
         info = self.critic_behaviour.fit(xs, ys, verbose=0)
         # train actor
         session = tf.keras.backend.get_session()
-        behaviour_actions = self.actor_behaviour.predict(self.reshape_input(batch.states_before))
+        # behaviour_actions = self.actor_behaviour.predict(self.reshape_input(batch.states_before))
+        behaviour_actions = self.actor_behaviour.predict(batch.states_before)
         session.run([self.train_actor_op], {
-            self.critic_behaviour.input: self.reshape_input(batch.states_before, behaviour_actions),
-            self.actor_behaviour.input: self.reshape_input(batch.states_before)
+            # self.critic_behaviour.input: self.reshape_input(batch.states_before, behaviour_actions),
+            # self.actor_behaviour.input: self.reshape_input(batch.states_before)
+            self.critic_behaviour.input: np.concatenate((batch.states_after, behaviour_actions), axis=1),
+            self.actor_behaviour.input: batch.states_before
         })
 
         def update_target_weights(behaviour, target):

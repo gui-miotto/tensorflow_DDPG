@@ -14,18 +14,23 @@ def test_agent(n_episodes: int=10, render: bool=True):
         action_space = env.action_space)
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
-        state = env.reset()
+        state = add_batch_to_state(env.reset())
         for steps in range(max_steps_per_ep):
             if render:
                 env.render()
             action = agent.act(state, explore=False)
-            state, reward, done, info = env.step(action)
+            state, reward, done, info = env.step(np.squeeze(action, axis=0))
+            state = add_batch_to_state(state)
+
             steps += 1
             score += reward
             if done:
                 break
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
     
+
+def add_batch_to_state(state):
+    return np.expand_dims(state, axis=0)
 
 def train_agent(n_episodes: int=1000, render: bool=False):
     env = ContinuousCartPoleEnv() 
@@ -47,7 +52,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
 
     while ep < n_episodes:
         steps, score, loss_sum, done = 0, 0, 0, False
-        state = env.reset()
+        state = add_batch_to_state(env.reset())
+
         ep += 1
 
         while not done and steps < max_steps_per_ep:
@@ -56,7 +62,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
 
             steps += 1
             action = agent.act(state, explore=True)
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            next_state = add_batch_to_state(next_state)
 
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
