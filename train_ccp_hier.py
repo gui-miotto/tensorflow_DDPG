@@ -3,6 +3,7 @@ from datetime import timedelta
 import numpy as np
 from continuous_cartpole import ContinuousCartPoleEnv
 from ddpg_agent.ddpg_agent import DDPGAgent
+from meta_agent import MetaAgent
 
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() 
@@ -31,9 +32,15 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     # todo: not compatible with 'CartPole-v1' 
 
     # create new naive agent
-    agent = DDPGAgent.new_trainable_agent(
-        state_space=env.observation_space, 
-        action_space = env.action_space)
+    # hi_agent = DDPGAgent.new_trainable_agent(
+    #     state_space=env.observation_space, 
+    #     action_space = env.action_space)
+
+    # lo_agent = DDPGAgent.new_trainable_agent(
+    #     state_space=env.observation_space, 
+    #     action_space = env.action_space)
+
+    agent = MetaAgent(env.observation_space, env.action_space, hi_agent=DDPGAgent, lo_agent=DDPGAgent)
 
     total_steps, ep = 0, 0
     time_begin = time.time()
@@ -92,6 +99,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                 else: 
                     print('eof')
                     #exit(0)
+        
         total_steps += steps
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
             + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
@@ -113,4 +121,4 @@ if __name__ == "__main__":
     max_steps_per_ep = 2000
 
     train_agent(n_episodes=10, render=False)
-    test_agent()
+    # test_agent()

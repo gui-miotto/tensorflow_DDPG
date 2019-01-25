@@ -3,8 +3,6 @@ import gym
 import numpy as np
 
 import agent
-from importlib import reload
-reload(agent)
 
 
 class MetaAgent(BaseAgent):
