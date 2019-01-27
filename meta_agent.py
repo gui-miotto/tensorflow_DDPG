@@ -48,10 +48,10 @@ class MetaAgent(BaseAgent):
             self.lo_agent = lo_agent.new_trainable_agent(
                 state_space=lo_state_space, action_space=action_space)
         else:
-            self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + 'hi_agent/',
+            self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=state_space)
 
-            self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + 'lo_agent/',
+            self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + '/lo_agent',
                 state_space=lo_state_space, action_space=action_space)
 
         # we won't need networks etc here
@@ -135,5 +135,5 @@ class MetaAgent(BaseAgent):
     
 
     def save_model(self, filepath:str):
-        self.hi_agent.save_model(filepath + 'hi_agent/')
-        self.lo_agent.save_model(filepath + 'lo_agent/')
+        self.hi_agent.save_model(filepath + '/hi_agent')
+        self.lo_agent.save_model(filepath + '/lo_agent')
