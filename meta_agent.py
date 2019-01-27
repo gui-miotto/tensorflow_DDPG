@@ -37,7 +37,7 @@ class MetaAgent(BaseAgent):
         self.lo_state_seq = np.empty((c, *state_space.shape))
 
         lo_state_space = deepcopy(state_space)
-        lo_state_space.shape = (2, *state_space.shape)
+        lo_state_space.shape = (2 * lo_state_space.shape[0],)
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent

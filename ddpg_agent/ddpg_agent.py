@@ -39,7 +39,7 @@ class DDPGAgent(BaseAgent):
         **kwargs) -> 'DDPGAgent':
 
         # Get dimensionality of action/state space
-        state_dim = np.prod(kwargs['state_space'].shape) #because this is now (2,4) for a LoAgent
+        state_dim = kwargs['state_space'].shape[0]
         n_actions = kwargs['action_space'].shape[0]
 
         # Create actor_behaviour network
@@ -47,7 +47,7 @@ class DDPGAgent(BaseAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
+        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh')) # activation='tanh' removed. It doesnt make sense for the high level agent
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
         # Create actor_target network. At first, it is just a copy of actor_behaviour
@@ -110,7 +110,7 @@ class DDPGAgent(BaseAgent):
         
         final_action = np.clip(action, self.action_space.low, self.action_space.high)
 
-        assert not np.isnan(final_action).any()
+        assert not np.isnan(final_action).any() # todo remove?
 
         return final_action 
         
