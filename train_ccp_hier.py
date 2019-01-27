@@ -8,10 +8,12 @@ from meta_agent import MetaAgent
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() 
     # load agent
-    agent = DDPGAgent.load_pretrained_agent(
-        filepath=saved_models_dir,
+    agent = MetaAgent(
+        models_dir=saved_models_dir,
         state_space=env.observation_space, 
-        action_space = env.action_space)
+        action_space = env.action_space,
+        hi_agent=DDPGAgent, 
+        lo_agent=DDPGAgent)
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
         state = add_batch_to_state(env.reset())
@@ -19,7 +21,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             if render:
                 env.render()
             action = agent.act(state, explore=False)
-            state, reward, done, info = env.step(np.squeeze(action, axis=0))
+            state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             state = add_batch_to_state(state)
 
             steps += 1
@@ -77,7 +79,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
             score += reward
             state = next_state
 
-            if False: #TODO - check if on *ux
+            if True: #TODO - check if on *ux
                 # check user keyboard commands
                 while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
                     line = sys.stdin.readline().strip()
@@ -109,9 +111,10 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                         #exit(0)
         
         total_steps += steps
+        #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+        #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
-        
+            + f'average loss: {loss_sum/steps:.5f}')
         
 
     #print time statistics 
@@ -128,5 +131,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=10, render=False)
-    # test_agent()
+    train_agent(n_episodes=3, render=False)
+    test_agent()

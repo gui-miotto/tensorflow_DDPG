@@ -15,6 +15,7 @@ class MetaAgent(BaseAgent):
                  action_space,
                  hi_agent=HiAgent,
                  lo_agent=BaseAgent,
+                 models_dir=None,
                  c=10):
         # note, this will not work if initialised with
         # default parameters!
@@ -23,17 +24,6 @@ class MetaAgent(BaseAgent):
         # self.state_space = state_space
         # self.action_space = action_space
         super().__init__(state_space, action_space)
-
-        # high level agent's actions will be states, i.e. goals for the LL agent
-        self.hi_agent = hi_agent.new_trainable_agent(
-            state_space=state_space, action_space=state_space)
-
-        lo_state_space = deepcopy(state_space)
-        lo_state_space.shape = (2, *state_space.shape)
-
-        # low level agent's states will be (state, goal) concatenated
-        self.lo_agent = lo_agent.new_trainable_agent(
-            state_space=lo_state_space, action_space=action_space)
 
         self.c = c  # number of time steps between high level actions
         self.t = 0  # step counter (resets after every c steps)
@@ -45,6 +35,24 @@ class MetaAgent(BaseAgent):
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
+
+        lo_state_space = deepcopy(state_space)
+        lo_state_space.shape = (2, *state_space.shape)
+
+        if models_dir is None:
+            # high level agent's actions will be states, i.e. goals for the LL agent
+            self.hi_agent = hi_agent.new_trainable_agent(
+                state_space=state_space, action_space=state_space)
+
+            # low level agent's states will be (state, goal) concatenated
+            self.lo_agent = lo_agent.new_trainable_agent(
+                state_space=lo_state_space, action_space=action_space)
+        else:
+            self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + 'hi_agent/',
+                state_space=state_space, action_space=state_space)
+
+            self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + 'lo_agent/',
+                state_space=lo_state_space, action_space=action_space)
 
         # we won't need networks etc here
 
@@ -124,3 +132,8 @@ class MetaAgent(BaseAgent):
             self.hi_rewards = 0
 
         return lo_loss #(lo_loss, hi_loss)
+    
+
+    def save_model(self, filepath:str):
+        self.hi_agent.save_model(filepath + 'hi_agent/')
+        self.lo_agent.save_model(filepath + 'lo_agent/')
