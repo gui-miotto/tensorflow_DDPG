@@ -34,7 +34,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
 def add_batch_to_state(state):
     return np.expand_dims(state, axis=0)
 
-def train_agent(n_episodes: int=1000, render: bool=False):
+def train_agent(n_episodes: int=1000, render: bool=True):
     env = ContinuousCartPoleEnv() 
     # todo: not compatible with 'CartPole-v1' 
 
@@ -53,7 +53,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     time_begin = time.time()
 
     while ep < n_episodes:
-        steps, score, loss_sum, done = 0, 0, 0, False
+        steps, score, done = 0, 0, False
+        loss_sum = np.array([0.,0.])
         state = add_batch_to_state(env.reset())
 
         ep += 1
@@ -75,7 +76,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                 reward -= 1
 
             loss = agent.train(state, action, reward, next_state, done)
-            loss_sum += loss
+            loss_sum += np.array(loss)
             score += reward
             state = next_state
 
@@ -114,7 +115,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
         #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
         #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss: {loss_sum/steps:.5f}')
+            + f'average loss: {loss_sum/steps}')
         
 
     #print time statistics 

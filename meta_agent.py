@@ -115,6 +115,7 @@ class MetaAgent(BaseAgent):
             relabel=False)
 
         # is it time to train the HL agent?
+        hi_loss = -1
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
                 self.hi_state,
@@ -130,7 +131,7 @@ class MetaAgent(BaseAgent):
             # reset this
             self.hi_rewards = 0
 
-        return lo_loss #(lo_loss, hi_loss)
+        return lo_loss, hi_loss
     
 
     def save_model(self, filepath:str):
