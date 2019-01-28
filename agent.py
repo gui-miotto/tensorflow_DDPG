@@ -127,9 +127,9 @@ class HiAgent(BaseAgent):
 
             # transform the (state) c-tuple into a (state, goal) c-tuple
             # shape = (c, 2, *state_shape)
-            lo_stategoal_seq = np.stack([
+            lo_stategoal_seq = np.concatenate([
                 lo_state_seq,
-                np.broadcast_to(candidate_goals[g], lo_state_seq.shape)
+                np.broadcast_to(candidate_goals[g], shape=lo_state_seq.shape)
             ],
                                         axis=1)
 

@@ -42,7 +42,7 @@ class MetaAgent(BaseAgent):
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
-                state_space=state_space, action_space=state_space)
+                state_space=state_space, action_space=state_space, hi_level=True)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(
@@ -115,6 +115,7 @@ class MetaAgent(BaseAgent):
             relabel=False)
 
         # is it time to train the HL agent?
+        hi_loss = -1
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
                 self.hi_state,
@@ -130,7 +131,7 @@ class MetaAgent(BaseAgent):
             # reset this
             self.hi_rewards = 0
 
-        return lo_loss #(lo_loss, hi_loss)
+        return lo_loss, hi_loss
     
 
     def save_model(self, filepath:str):
