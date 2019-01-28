@@ -6,7 +6,7 @@ class BaseAgent:
         self.state_space = state_space
         self.action_space = action_space
 
-    def act(self, state, training=False):
+    def act(self, state, explore=False):
         """
         Generates actions from state
         state.shape should be: (batch, action_space.shape...)
@@ -154,7 +154,7 @@ class Pigeon(HiAgent):
     """
     a stupid agent for testing purposes
     """
-    def act(self, state, training=False):
+    def act(self, state, explore=False):
 
         return np.random.uniform(self.action_space.low, self.action_space.high)
 
