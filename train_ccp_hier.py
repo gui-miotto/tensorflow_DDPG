@@ -79,7 +79,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
             score += reward
             state = next_state
 
-            if True: #TODO - check if on *ux
+            if os.name != 'nt':
                 # check user keyboard commands
                 while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
                     line = sys.stdin.readline().strip()

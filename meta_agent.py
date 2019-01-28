@@ -85,7 +85,6 @@ class MetaAgent(BaseAgent):
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
         lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
         
-
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action
 

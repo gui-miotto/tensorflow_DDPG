@@ -65,7 +65,7 @@ class DDPGAgent(BaseAgent):
         crit_targ = tf.keras.models.clone_model(crit_behav)
 
         # Construct tensorflow graph for actor gradients
-        critic_gradient = tf.gradients(crit_behav.output, crit_behav.input)[0][:,4:5]
+        critic_gradient = tf.gradients(crit_behav.output, crit_behav.input)[0][:,state_dim:] #the ACTION is the fifth element of this array (we concatenated it with the state)
         actor_gradient = tf.gradients(act_behav.output, act_behav.trainable_variables, -critic_gradient)
         # todo understand, rename variable
         #normalized_actor_gradient = zip(actor_gradient, self.actor_behaviour.trainable_variables)
@@ -102,6 +102,7 @@ class DDPGAgent(BaseAgent):
 
     def act(self, state, explore=False):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
+        assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state)
         if explore:
             # todo ornstein uhlenbeck?
