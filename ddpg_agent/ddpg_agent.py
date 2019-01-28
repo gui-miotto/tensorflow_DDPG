@@ -1,4 +1,4 @@
-from agent import BaseAgent
+from agent import BaseAgent, HiAgent
 from ddpg_agent.replay_buffer import ReplayBuffer
 import numpy as np
 import tensorflow as tf
@@ -6,7 +6,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 import os
 
-class DDPGAgent(BaseAgent):
+class DDPGAgent(HiAgent):
     def __init__(self, 
         state_space: 'Box'=None, 
         action_space: 'Box'=None,
@@ -36,6 +36,7 @@ class DDPGAgent(BaseAgent):
         learning_rate_actor=0.0001,
         learning_rate_critic=0.0001,
         batch_size=32,
+        hi_level=False,
         **kwargs) -> 'DDPGAgent':
 
         # Get dimensionality of action/state space
@@ -47,7 +48,7 @@ class DDPGAgent(BaseAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh')) # activation='tanh' removed. It doesnt make sense for the high level agent
+        act_behav.add(Dense(n_actions, kernel_initializer='normal')) #, activation='tanh')) # activation='tanh' removed. It doesnt make sense for the high level agent
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
         # Create actor_target network. At first, it is just a copy of actor_behaviour
@@ -75,7 +76,7 @@ class DDPGAgent(BaseAgent):
         session.run(tf.global_variables_initializer())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size)
+        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size, use_long=hi_level)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
@@ -104,6 +105,9 @@ class DDPGAgent(BaseAgent):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state)
+        
+        # assert np.max(np.abs(action)) <= 1 #because of tanh
+
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(scale=self.stdev_explore)
@@ -127,9 +131,16 @@ class DDPGAgent(BaseAgent):
               lo_current_policy=None):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
-        self.replay_buffer.add(np.squeeze(state, axis=0), np.squeeze(action, axis=0), np.squeeze(next_state, axis=0), reward, done)
+        
+        self.replay_buffer.add(np.squeeze(state, axis=0), np.squeeze(action, axis=0), np.squeeze(next_state, axis=0), reward, done, lo_state_seq, lo_action_seq)
         #sample a batch
         batch = self.replay_buffer.sample_batch()
+
+        # off policy correction / relabelling!
+        if relabel:
+            for i in range(batch.actions.shape[0]): #TODO make r_g fn accept batches
+                batch.actions[i] = self.relabel_goal(batch.actions[i], batch.lo_state_seqs[i], batch.lo_action_seqs[i], lo_current_policy)
+
         # ask actor target network for actions ...
         # target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))
         target_actions = self.actor_target.predict(batch.states_after)

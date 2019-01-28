@@ -42,7 +42,7 @@ class MetaAgent(BaseAgent):
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
-                state_space=state_space, action_space=state_space)
+                state_space=state_space, action_space=state_space, hi_level=True)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(

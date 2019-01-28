@@ -4,7 +4,7 @@ import numpy as np
 
 ReplayBatch = namedtuple('ReplayBatch', ['states_before', 'actions', 'states_after', 'rewards','done_flags'])
 
-ReplayBatchLong = namedtuple('ReplayBatch', ['states_before', 'actions', 'states_after', 'rewards','done_flags', 'lo_state_seq', 'lo_action_seq'])
+ReplayBatchLong = namedtuple('ReplayBatch', ['states_before', 'actions', 'states_after', 'rewards','done_flags', 'lo_state_seqs', 'lo_action_seqs'])
 
 
 class ReplayBuffer():
@@ -65,7 +65,7 @@ class ReplayBuffer():
         if self.use_long:
             lss = np.array(self.lo_state_seqs)[pick]
             las = np.array(self.lo_action_seqs)[pick]
-            return ReplayBatchLong(states_before=sb, actions=ac, states_after=sa, rewards=rw, done_flags=df, lo_state_seq=lss, lo_action_seq=las)
+            return ReplayBatchLong(states_before=sb, actions=ac, states_after=sa, rewards=rw, done_flags=df, lo_state_seqs=lss, lo_action_seqs=las)
 
         # Batch is stored in the namedtupple 'ReplayBatch'
         return ReplayBatch(states_before=sb, actions=ac, states_after=sa, rewards=rw, done_flags=df)
