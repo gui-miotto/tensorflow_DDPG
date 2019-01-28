@@ -53,7 +53,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
     time_begin = time.time()
 
     while ep < n_episodes:
-        steps, score, done = 0, 0, False
+        steps, hi_steps, score, done = 0, 0, 0, False
         loss_sum = np.array([0.,0.])
         state = add_batch_to_state(env.reset())
 
@@ -75,8 +75,17 @@ def train_agent(n_episodes: int=1000, render: bool=True):
             if steps >= max_steps_per_ep:
                 reward -= 1
 
-            loss = agent.train(state, action, reward, next_state, done)
-            loss_sum += np.array(loss)
+            lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
+            
+            if hi_loss is not None:
+                hi_steps += 1
+                loss_sum[0] += (1 / hi_steps) * (hi_loss - loss_sum[0]) # avoids need to divide by num steps at end
+            
+            # loss_sum += np.array(loss)
+            
+            # lo_loss
+            loss_sum[1] += (1 / steps) * (lo_loss - loss_sum[1]) # avoids need to divide by num steps at end
+            
             score += reward
             state = next_state
 
@@ -115,7 +124,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
         #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss: {loss_sum/steps}')
+            + f'average loss (hi, lo): {loss_sum}')
         
 
     #print time statistics 
@@ -132,5 +141,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=100, render=False)
+    train_agent(n_episodes=1000, render=False)
     test_agent()
