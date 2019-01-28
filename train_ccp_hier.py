@@ -3,22 +3,27 @@ from datetime import timedelta
 import numpy as np
 from continuous_cartpole import ContinuousCartPoleEnv
 from ddpg_agent.ddpg_agent import DDPGAgent
+from meta_agent import MetaAgent
 
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() 
     # load agent
-    agent = DDPGAgent.load_pretrained_agent(
-        filepath=saved_models_dir,
+    agent = MetaAgent(
+        models_dir=saved_models_dir,
         state_space=env.observation_space, 
-        action_space = env.action_space)
+        action_space = env.action_space,
+        hi_agent=DDPGAgent, 
+        lo_agent=DDPGAgent)
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
-        state = env.reset()
+        state = add_batch_to_state(env.reset())
         for steps in range(max_steps_per_ep):
             if render:
                 env.render()
             action = agent.act(state, explore=False)
-            state, reward, done, info = env.step(action)
+            state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            state = add_batch_to_state(state)
+
             steps += 1
             score += reward
             if done:
@@ -26,21 +31,32 @@ def test_agent(n_episodes: int=10, render: bool=True):
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
     
 
-def train_agent(n_episodes: int=1000, render: bool=False):
+def add_batch_to_state(state):
+    return np.expand_dims(state, axis=0)
+
+def train_agent(n_episodes: int=1000, render: bool=True):
     env = ContinuousCartPoleEnv() 
     # todo: not compatible with 'CartPole-v1' 
 
     # create new naive agent
-    agent = DDPGAgent.new_trainable_agent(
-        state_space=env.observation_space, 
-        action_space = env.action_space)
+    # hi_agent = DDPGAgent.new_trainable_agent(
+    #     state_space=env.observation_space, 
+    #     action_space = env.action_space)
+
+    # lo_agent = DDPGAgent.new_trainable_agent(
+    #     state_space=env.observation_space, 
+    #     action_space = env.action_space)
+
+    agent = MetaAgent(env.observation_space, env.action_space, hi_agent=DDPGAgent, lo_agent=DDPGAgent)
 
     total_steps, ep = 0, 0
     time_begin = time.time()
 
     while ep < n_episodes:
-        steps, score, loss_sum, done = 0, 0, 0, False
-        state = env.reset()
+        steps, score, done = 0, 0, False
+        loss_sum = np.array([0.,0.])
+        state = add_batch_to_state(env.reset())
+
         ep += 1
 
         while not done and steps < max_steps_per_ep:
@@ -49,7 +65,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
 
             steps += 1
             action = agent.act(state, explore=True)
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            next_state = add_batch_to_state(next_state)
 
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
@@ -59,11 +76,11 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                 reward -= 1
 
             loss = agent.train(state, action, reward, next_state, done)
-            loss_sum += loss
+            loss_sum += np.array(loss)
             score += reward
             state = next_state
 
-            if False: #TODO - check if on *ux
+            if os.name != 'nt':
                 # check user keyboard commands
                 while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
                     line = sys.stdin.readline().strip()
@@ -93,12 +110,12 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                     else: 
                         print('eof')
                         #exit(0)
-
         
         total_steps += steps
+        #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+        #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
-        
+            + f'average loss: {loss_sum/steps}')
         
 
     #print time statistics 
@@ -115,5 +132,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=1000, render=False)
+    train_agent(n_episodes=100, render=False)
     test_agent()

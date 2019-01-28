@@ -6,7 +6,7 @@ class BaseAgent:
         self.state_space = state_space
         self.action_space = action_space
 
-    def act(self, state, training=False):
+    def act(self, state, explore=False):
         """
         Generates actions from state
         state.shape should be: (batch, action_space.shape...)
@@ -127,9 +127,9 @@ class HiAgent(BaseAgent):
 
             # transform the (state) c-tuple into a (state, goal) c-tuple
             # shape = (c, 2, *state_shape)
-            lo_stategoal_seq = np.stack([
+            lo_stategoal_seq = np.concatenate([
                 lo_state_seq,
-                np.broadcast_to(candidate_goals[g], lo_state_seq.shape)
+                np.broadcast_to(candidate_goals[g], shape=lo_state_seq.shape)
             ],
                                         axis=1)
 
@@ -154,7 +154,7 @@ class Pigeon(HiAgent):
     """
     a stupid agent for testing purposes
     """
-    def act(self, state, training=False):
+    def act(self, state, explore=False):
 
         return np.random.uniform(self.action_space.low, self.action_space.high)
 
