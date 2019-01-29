@@ -18,7 +18,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 0.33, #TODO
+        stdev_explore = 0.5, #TODO
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -110,8 +110,7 @@ class DDPGAgent(HiAgent):
 
         if explore:
             # todo ornstein uhlenbeck?
-            # action += np.random.normal(scale=self.action_space.high, size=self.action_space.shape[0])
-            action += np.random.normal(scale=self.stdev_explore)
+            action += np.random.normal(size=self.action_space.shape[0], scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
         
         final_action = np.clip(action, -1, 1) #still in (-1, 1) space - will be multiplied out to action space later
