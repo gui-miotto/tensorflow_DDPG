@@ -18,7 +18,8 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 0.5, #TODO
+        stdev_explore = 0.6, #TODO
+        exploration_decay = 0.99999
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -30,13 +31,14 @@ class DDPGAgent(HiAgent):
         self.discount_factor = discount_factor
         self.tau = tau
         self.stdev_explore = stdev_explore
+        self.exploration_decay = exploration_decay
 
     @classmethod
     def new_trainable_agent(cls,
         learning_rate_actor=0.0001,
         learning_rate_critic=0.0001,
         batch_size=32,
-        hi_level=False,
+        use_long_buffer=False,
         **kwargs) -> 'DDPGAgent':
 
         # Get dimensionality of action/state space
@@ -82,7 +84,7 @@ class DDPGAgent(HiAgent):
         session.run(tf.global_variables_initializer())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size, use_long=hi_level)
+        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size, use_long=use_long_buffer)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
@@ -117,7 +119,7 @@ class DDPGAgent(HiAgent):
         if explore:
             # todo ornstein uhlenbeck?
             action += np.random.normal(size=self.action_space.shape[0], scale=self.stdev_explore)
-            self.stdev_explore *= 0.99999
+            self.stdev_explore *= self.exploration_decay
         
         final_action = np.clip(action, -1, 1) #still in (-1, 1) space - will be multiplied out to action space later
 

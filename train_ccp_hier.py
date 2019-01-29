@@ -137,7 +137,8 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
         #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss (hi, lo): {loss_sum}, exploration: {agent.hi_agent.stdev_explore:6f}')
+            + f'average loss (hi, lo): {loss_sum}, hi_expl: {agent.hi_agent.stdev_explore:6f}, '
+            + f'lo_expl: {agent.lo_agent.stdev_explore:6f}')
         
 
     #print time statistics 
@@ -154,5 +155,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=3, render=True)
+    train_agent(n_episodes=10, render=True)
     test_agent()
