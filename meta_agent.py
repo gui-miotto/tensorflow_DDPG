@@ -130,7 +130,7 @@ class MetaAgent(BaseAgent):
             relabel=False)
 
         # is it time to train the HL agent?
-        hi_loss = -1
+        hi_loss = None
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
                 self.hi_state,
