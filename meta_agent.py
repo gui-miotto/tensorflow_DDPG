@@ -41,17 +41,25 @@ class MetaAgent(BaseAgent):
         lo_state_space = deepcopy(state_space)
         lo_state_space.shape = (2 * lo_state_space.shape[0],)
 
+        hi_action_space = deepcopy(state_space)
+        hi_action_space.high = np.clip(
+            hi_action_space.high, 
+            a_min=-10, a_max=10)
+        hi_action_space.low = np.clip(
+            hi_action_space.low,
+            a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
+
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
-                state_space=state_space, action_space=state_space, hi_level=True)
+                state_space=state_space, action_space=hi_action_space, hi_level=True)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(
                 state_space=lo_state_space, action_space=action_space)
         else:
             self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
-                state_space=state_space, action_space=state_space)
+                state_space=state_space, action_space=hi_action_space)
 
             self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + '/lo_agent',
                 state_space=lo_state_space, action_space=action_space)
@@ -80,7 +88,7 @@ class MetaAgent(BaseAgent):
 
             # HL agent picks a new state from space and sets it as LL's goal
             self.goal = self.hi_agent.act(state, explore)
-            print (self.goal)
+            # print (self.goal)
 
             # save for later training
             self.hi_state = state

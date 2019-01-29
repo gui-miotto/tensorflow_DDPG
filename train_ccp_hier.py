@@ -11,7 +11,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
     agent = MetaAgent(
         models_dir=saved_models_dir,
         state_space=env.observation_space, 
-        action_space = env.action_space,
+        action_space = env.action_space, #TODO clipping
         hi_agent=DDPGAgent, 
         lo_agent=DDPGAgent)
 

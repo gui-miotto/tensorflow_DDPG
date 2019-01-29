@@ -18,7 +18,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 2.,
+        stdev_explore = 0.5, #TODO
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -29,7 +29,7 @@ class DDPGAgent(HiAgent):
         self.train_actor_op = train_actor_op
         self.discount_factor = discount_factor
         self.tau = tau
-        self.stdev_explore = stdev_explore
+        self.stdev_explore = self.action_space.high * stdev_explore
 
     @classmethod
     def new_trainable_agent(cls,
@@ -110,6 +110,7 @@ class DDPGAgent(HiAgent):
 
         if explore:
             # todo ornstein uhlenbeck?
+            # action += np.random.normal(scale=self.action_space.high, size=self.action_space.shape[0])
             action += np.random.normal(scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
         
