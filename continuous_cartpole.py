@@ -22,7 +22,9 @@ class ContinuousCartPoleEnv(gym.Env):
         self.kinematics_integrator = 'euler'
 
         # Angle at which to fail the episode
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        # self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        # removed - this was only relevant when pole starts in 'up' position
+        self.theta_threshold_radians = math.pi / 2
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
@@ -75,7 +77,7 @@ class ContinuousCartPoleEnv(gym.Env):
             theta_dot = theta_dot + self.tau * thetaacc
             theta = theta + self.tau * theta_dot
         self.state = (x,x_dot,theta,theta_dot)
-        
+
         done =  x < -self.x_threshold or x > self.x_threshold
         done = bool(done)
         

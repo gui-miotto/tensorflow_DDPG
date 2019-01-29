@@ -11,16 +11,22 @@ def test_agent(n_episodes: int=10, render: bool=True):
     agent = MetaAgent(
         models_dir=saved_models_dir,
         state_space=env.observation_space, 
-        action_space = env.action_space,
+        action_space = env.action_space, #TODO clipping
         hi_agent=DDPGAgent, 
         lo_agent=DDPGAgent)
+
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
         state = add_batch_to_state(env.reset())
+
+        goal_state = np.squeeze(state)
+        agent.reset_clock()
+
         for steps in range(max_steps_per_ep):
             if render:
-                env.render()
+                env.render(goal_state=goal_state)
             action = agent.act(state, explore=False)
+            goal_state = np.squeeze(agent.goal)
             state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             state = add_batch_to_state(state)
 
@@ -56,6 +62,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         steps, hi_steps, score, done = 0, 0, 0, False
         loss_sum = np.array([0.,0.])
         state = add_batch_to_state(env.reset())
+        agent.reset_clock()
 
         ep += 1
 
@@ -124,7 +131,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
         #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss (hi, lo): {loss_sum}')
+            + f'average loss (hi, lo): {loss_sum}, exploration: {agent.hi_agent.stdev_explore:6f}')
         
 
     #print time statistics 
@@ -141,5 +148,9 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
+<<<<<<< HEAD
     train_agent(n_episodes=1000, render=False)
+=======
+    train_agent(n_episodes=3, render=True)
+>>>>>>> alex
     test_agent()

@@ -3,7 +3,7 @@ from ddpg_agent.replay_buffer import ReplayBuffer
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, ReLU
 import os
 
 class DDPGAgent(HiAgent):
@@ -18,7 +18,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 2.,
+        stdev_explore = 0.5, #TODO
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -48,7 +48,10 @@ class DDPGAgent(HiAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(n_actions, kernel_initializer='normal')) #, activation='tanh')) # activation='tanh' removed. It doesnt make sense for the high level agent
+        # act_behav.add(Dense(50, kernel_initializer='normal'))
+        # act_behav.add(BatchNormalization())
+        # act_behav.add(ReLU())
+        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
         # Create actor_target network. At first, it is just a copy of actor_behaviour
@@ -59,6 +62,9 @@ class DDPGAgent(HiAgent):
         crit_behav = Sequential()
         crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu')) #TODO for 2d actions
         crit_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
+        # crit_behav.add(Dense(50, kernel_initializer='normal'))
+        # crit_behav.add(BatchNormalization())
+        # crit_behav.add(ReLU())
         crit_behav.add(Dense(1, kernel_initializer='normal'))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
 
@@ -104,16 +110,16 @@ class DDPGAgent(HiAgent):
     def act(self, state, explore=False):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
-        action = self.actor_behaviour.predict(state)
+        action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
         # assert np.max(np.abs(action)) <= 1 #because of tanh
 
         if explore:
             # todo ornstein uhlenbeck?
-            action += np.random.normal(scale=self.stdev_explore)
+            action += np.random.normal(size=self.action_space.shape[0], scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
         
-        final_action = np.clip(action, self.action_space.low, self.action_space.high)
+        final_action = np.clip(action, -1, 1) #still in (-1, 1) space - will be multiplied out to action space later
 
         assert not np.isnan(final_action).any() # todo remove?
 
