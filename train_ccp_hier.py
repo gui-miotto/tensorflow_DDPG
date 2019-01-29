@@ -59,18 +59,12 @@ def train_agent(n_episodes: int=1000, render: bool=True):
 
         ep += 1
 
-        goal_state = np.squeeze(state)
-
         while not done and steps < max_steps_per_ep:
             if render:
-                env.render(goal_state=goal_state)
-                pass
+                env.render()
 
             steps += 1
             action = agent.act(state, explore=True)
-            
-            goal_state = np.squeeze(agent.goal)
-
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             next_state = add_batch_to_state(next_state)
 
@@ -147,5 +141,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=1, render=True)
+    train_agent(n_episodes=1000, render=False)
     test_agent()
