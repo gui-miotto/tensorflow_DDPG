@@ -98,7 +98,7 @@ class ContinuousCartPoleEnv(gym.Env):
 
         world_width = self.x_threshold*2
         scale = screen_width/world_width
-        carty = 100 # TOP OF CART
+        carty = 150 # TOP OF CART
         polewidth = 10.0
         polelen = scale * (2 * self.length)
         cartwidth = 50.0
@@ -112,9 +112,15 @@ class ContinuousCartPoleEnv(gym.Env):
             from gym.envs.classic_control import rendering
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
+            # Track
+            self.track = rendering.Line((0,carty), (screen_width,carty))
+            self.track.set_color(0,0,0)
+            self.viewer.add_geom(self.track)
+
             # Cart
             l,r,t,b = -cartwidth/2, cartwidth/2, cartheight/2, -cartheight/2
-            axleoffset =cartheight/4.0
+            #axleoffset =cartheight/4.0
+            axleoffset = 0
             cart = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
             self.carttrans = rendering.Transform()
             cart.add_attr(self.carttrans)
@@ -129,54 +135,67 @@ class ContinuousCartPoleEnv(gym.Env):
             pole.add_attr(self.carttrans)
             self.viewer.add_geom(pole)
 
-
+            # Axle
             self.axle = rendering.make_circle(polewidth/2)
             self.axle.add_attr(self.poletrans)
             self.axle.add_attr(self.carttrans)
             self.axle.set_color(.5,.5,.8)
             self.viewer.add_geom(self.axle)
             
-            self.track = rendering.Line((0,carty), (screen_width,carty))
-            self.track.set_color(0,0,0)
-            self.viewer.add_geom(self.track)
 
             # render goal state from HL agent
             if goal_state is not None:
                 self.cart_goal = deepcopy(cart)
-                cart_goal_frame = rendering.make_polygon(self.cart_goal.v,filled=False)
+                #cart_goal_frame = rendering.make_polygon(self.cart_goal.v,filled=False)
                 
                 self.pole_goal = deepcopy(pole)
-                pole_goal_frame = rendering.make_polygon(self.pole_goal.v,filled=False)
+                #pole_goal_frame = rendering.make_polygon(self.pole_goal.v,filled=False)
 
-                #self.cart_goal.set_color(.7,.3,.7) #pink?
-                #self.pole_goal.set_color(.8,.2,.8) #pinker?
+                self.cart_goal.set_color(.7,.3,.7) #pink?
+                self.pole_goal.set_color(.8,.2,.8) #pinker?
 
                 self.viewer.add_geom(self.cart_goal)
                 self.viewer.add_geom(self.pole_goal)
-                self.viewer.add_geom(cart_goal_frame)
-                self.viewer.add_geom(pole_goal_frame)
+                #self.viewer.add_geom(cart_goal_frame)
+                #self.viewer.add_geom(pole_goal_frame)
 
                 self.carttrans_goal = self.cart_goal.attrs[-1]
                 self.poletrans_goal = self.pole_goal.attrs[-2]
                 self.pole_goal.attrs[-1] = self.carttrans_goal # so that we can just change this once below
                 
-                cart_goal_frame.add_attr(self.carttrans_goal)
-                pole_goal_frame.add_attr(self.poletrans_goal)
-                pole_goal_frame.add_attr(self.carttrans_goal)
-                
+                #cart_goal_frame.add_attr(self.carttrans_goal)
+                #pole_goal_frame.add_attr(self.poletrans_goal)
+                #pole_goal_frame.add_attr(self.carttrans_goal)
+
+
+                # Arrow points
+                l,r,t,b, m = 0, arrowlenmax, arrowwidth/2, -arrowwidth/2, 0
 
                 # Cart velocity goal ARROW
-                #l,r,t,b = 0, arrowlenmax, arrowwidth/2, -arrowwidth/2
-                #goal_cart_arrow_body = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
-                #goal_cart_arrow_head = rendering.FilledPolygon([(r,3*t), (r+4*t,0), (r,3*b)])
-                #goal_cart_arrow_body.set_color(0, .45, .45) #green
-                #goal_cart_arrow_head.set_color(0, .45, .45) #green
-                #self.goal_cart_arrow_trans = rendering.Transform()
-                #goal_cart_arrow_body.add_attr(self.goal_cart_arrow_trans)
-                #goal_cart_arrow_head.add_attr(self.goal_cart_arrow_trans)
-                #self.viewer.add_geom(goal_cart_arrow_body)
-                #self.viewer.add_geom(goal_cart_arrow_head)
+                goal_cart_arrow_body = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+                goal_cart_arrow_head = rendering.FilledPolygon([(r,3*t), (r+4*t,m), (r,3*b)])
+                
+                ac = polelen
+                goal_pole_arrow_body = rendering.FilledPolygon([(l,b+ac), (l,t+ac), (r,t+ac), (r,b+ac)])
+                goal_pole_arrow_head = rendering.FilledPolygon([(r,3*t+ac), (r+4*t,m+ac), (r,3*b+ac)])
 
+                #arrow_color = [0, .45, .45] #green
+                arrow_color = [.45, .45, .45] #green
+                goal_cart_arrow_body.set_color(*arrow_color) 
+                goal_cart_arrow_head.set_color(*arrow_color) 
+                goal_pole_arrow_body.set_color(*arrow_color) 
+                goal_pole_arrow_head.set_color(*arrow_color) 
+
+                self.goal_cart_arrow_trans = rendering.Transform()
+                goal_cart_arrow_body.add_attr(self.goal_cart_arrow_trans)
+                goal_cart_arrow_head.add_attr(self.goal_cart_arrow_trans)
+                self.goal_pole_arrow_trans = rendering.Transform()
+                goal_pole_arrow_body.add_attr(self.goal_pole_arrow_trans)
+                goal_pole_arrow_head.add_attr(self.goal_pole_arrow_trans)
+                self.viewer.add_geom(goal_cart_arrow_body)
+                self.viewer.add_geom(goal_cart_arrow_head)
+                self.viewer.add_geom(goal_pole_arrow_body)
+                self.viewer.add_geom(goal_pole_arrow_head)
 
 
             self._pole_geom = pole
@@ -200,19 +219,25 @@ class ContinuousCartPoleEnv(gym.Env):
             self.poletrans_goal.set_rotation(-goal_state[2]) # TODO
 
             # Cart velocity goal ARROW
-            #self.goal_cart_arrow_trans.set_translation(cartx_goal, carty)
-            #arrow_scale = goal_state[1] / max_cart_vel
-            #self.goal_cart_arrow_trans.set_scale(newy=1, newx=arrow_scale)
+            self.goal_cart_arrow_trans.set_translation(cartx_goal, carty)
+            cart_arrow_scale = goal_state[1] / max_cart_vel
+            self.goal_cart_arrow_trans.set_scale(newy=1, newx=cart_arrow_scale)
+
+            # Pole velocity goal ARROW
+            self.goal_pole_arrow_trans.set_translation(cartx_goal, carty)
+            pole_arrow_scale = goal_state[3] / max_pole_vel
+            self.goal_pole_arrow_trans.set_scale(newy=1, newx=pole_arrow_scale)
+            self.goal_pole_arrow_trans.set_rotation(-goal_state[2])
             
             # Goal cart color
-            goal_cart_vel_norm = goal_state[1] / max_cart_vel
-            (red, blue) = (1, 0) if goal_cart_vel_norm > 0 else (0,1)
-            self.cart_goal.set_color(red, 0, blue, abs(goal_cart_vel_norm))
+            #goal_cart_vel_norm = goal_state[1] / max_cart_vel
+            #(red, blue) = (1, 0) if goal_cart_vel_norm > 0 else (0,1)
+            #self.cart_goal.set_color(red, 0, blue, abs(goal_cart_vel_norm))
 
             # Goal pole color
-            goal_pole_vel_norm = goal_state[3] / max_pole_vel
-            (red, blue) = (1, 0) if goal_pole_vel_norm > 0 else (0,1)
-            self.pole_goal.set_color(red, 0, blue, abs(goal_pole_vel_norm))
+            #goal_pole_vel_norm = goal_state[3] / max_pole_vel
+            #(red, blue) = (1, 0) if goal_pole_vel_norm > 0 else (0,1)
+            #self.pole_goal.set_color(red, 0, blue, abs(goal_pole_vel_norm))
             
 
 
