@@ -32,6 +32,8 @@ class MetaAgent(BaseAgent):
 
         self.hi_state = None  # state in which HL agent last took an action
 
+        self.goal = None # this will store the HL agent's actions
+
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
@@ -115,7 +117,7 @@ class MetaAgent(BaseAgent):
             relabel=False)
 
         # is it time to train the HL agent?
-        hi_loss = None
+        hi_loss = -1
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
                 self.hi_state,

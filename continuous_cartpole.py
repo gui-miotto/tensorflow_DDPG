@@ -3,6 +3,7 @@ import gym
 from gym import spaces, logger
 from gym.utils import seeding
 import numpy as np
+from copy import deepcopy
 
 class ContinuousCartPoleEnv(gym.Env):
     metadata = {
@@ -89,7 +90,7 @@ class ContinuousCartPoleEnv(gym.Env):
         self.steps_beyond_done = None
         return np.array(self.state)
 
-    def render(self, mode='human'):
+    def render(self, mode='human', goal_state=None):
         screen_width = 600
         screen_height = 400
 
@@ -126,6 +127,18 @@ class ContinuousCartPoleEnv(gym.Env):
             self.track.set_color(0,0,0)
             self.viewer.add_geom(self.track)
 
+            # render goal state from HL agent
+            if goal_state is not None:
+                cart_goal = deepcopy(cart)
+                pole_goal = deepcopy(pole)
+                cart_goal.set_color(.7,.3,.7) #pink?
+                pole_goal.set_color(.8,.2,.8) #pinker?
+                self.viewer.add_geom(cart_goal)
+                self.viewer.add_geom(pole_goal)
+                self.carttrans_goal = cart_goal.attrs[-1]
+                self.poletrans_goal = pole_goal.attrs[-2]
+                pole_goal.attrs[-1] = self.carttrans_goal # so that we can just change this once below
+
             self._pole_geom = pole
 
         if self.state is None: return None
@@ -139,6 +152,12 @@ class ContinuousCartPoleEnv(gym.Env):
         cartx = x[0]*scale+screen_width/2.0 # MIDDLE OF CART
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
+
+        # render goal state from HL agent
+        if goal_state is not None:
+            cartx_goal = goal_state[0]*scale+screen_width/2.0 # MIDDLE OF CART
+            self.carttrans_goal.set_translation(cartx_goal, carty)
+            self.poletrans_goal.set_rotation(-goal_state[2]) # TODO
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
