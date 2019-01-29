@@ -47,9 +47,10 @@ class DDPGAgent(HiAgent):
         adam_act = tf.keras.optimizers.Adam(learning_rate_actor)
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(50, kernel_initializer='normal'))
-        act_behav.add(BatchNormalization())
-        act_behav.add(ReLU())
+        act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
+        # act_behav.add(Dense(50, kernel_initializer='normal'))
+        # act_behav.add(BatchNormalization())
+        # act_behav.add(ReLU())
         act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
@@ -61,6 +62,9 @@ class DDPGAgent(HiAgent):
         crit_behav = Sequential()
         crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu')) #TODO for 2d actions
         crit_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
+        # crit_behav.add(Dense(50, kernel_initializer='normal'))
+        # crit_behav.add(BatchNormalization())
+        # crit_behav.add(ReLU())
         crit_behav.add(Dense(1, kernel_initializer='normal'))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
 
