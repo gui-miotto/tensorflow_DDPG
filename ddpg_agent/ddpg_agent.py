@@ -3,7 +3,7 @@ from ddpg_agent.replay_buffer import ReplayBuffer
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, ReLU
 import os
 
 class DDPGAgent(HiAgent):
@@ -47,7 +47,9 @@ class DDPGAgent(HiAgent):
         adam_act = tf.keras.optimizers.Adam(learning_rate_actor)
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
+        act_behav.add(Dense(50, kernel_initializer='normal'))
+        act_behav.add(BatchNormalization())
+        act_behav.add(ReLU())
         act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
