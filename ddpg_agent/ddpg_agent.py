@@ -18,7 +18,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 0.5, #TODO
+        stdev_explore = 0.33, #TODO
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -29,7 +29,7 @@ class DDPGAgent(HiAgent):
         self.train_actor_op = train_actor_op
         self.discount_factor = discount_factor
         self.tau = tau
-        self.stdev_explore = self.action_space.high * stdev_explore
+        self.stdev_explore = stdev_explore
 
     @classmethod
     def new_trainable_agent(cls,
@@ -48,7 +48,7 @@ class DDPGAgent(HiAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(n_actions, kernel_initializer='normal')) #, activation='tanh')) # activation='tanh' removed. It doesnt make sense for the high level agent
+        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
         
         # Create actor_target network. At first, it is just a copy of actor_behaviour
@@ -104,7 +104,7 @@ class DDPGAgent(HiAgent):
     def act(self, state, explore=False):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
-        action = self.actor_behaviour.predict(state)
+        action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
         # assert np.max(np.abs(action)) <= 1 #because of tanh
 
@@ -114,7 +114,7 @@ class DDPGAgent(HiAgent):
             action += np.random.normal(scale=self.stdev_explore)
             self.stdev_explore *= 0.99999
         
-        final_action = np.clip(action, self.action_space.low, self.action_space.high)
+        final_action = np.clip(action, -1, 1) #still in (-1, 1) space - will be multiplied out to action space later
 
         assert not np.isnan(final_action).any() # todo remove?
 

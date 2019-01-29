@@ -38,39 +38,38 @@ class MetaAgent(BaseAgent):
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
 
-        lo_state_space = deepcopy(state_space)
-        lo_state_space.shape = (2 * lo_state_space.shape[0],)
+        self.lo_state_space = deepcopy(state_space)
+        self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
 
-        hi_action_space = deepcopy(state_space)
-        hi_action_space.high = np.clip(
-            hi_action_space.high, 
+        self.hi_action_space = deepcopy(state_space)
+        self.hi_action_space.high = np.clip(
+            self.hi_action_space.high, 
             a_min=-10, a_max=10)
-        hi_action_space.low = np.clip(
-            hi_action_space.low,
+        self.hi_action_space.low = np.clip(
+            self.hi_action_space.low,
             a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
-                state_space=state_space, action_space=hi_action_space, hi_level=True)
+                state_space=state_space, action_space=self.hi_action_space, hi_level=True)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(
-                state_space=lo_state_space, action_space=action_space)
+                state_space=self.lo_state_space, action_space=action_space)
         else:
             self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
-                state_space=state_space, action_space=hi_action_space)
+                state_space=state_space, action_space=self.hi_action_space)
 
             self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + '/lo_agent',
-                state_space=lo_state_space, action_space=action_space)
+                state_space=self.lo_state_space, action_space=action_space)
 
         # we won't need networks etc here
 
     def reset_clock(self):
         self.t = 0
 
-    @staticmethod
-    def intrinsic_reward(state, goal, action, next_state):
+    def intrinsic_reward(self, state, goal, action, next_state):
         """
         a reward function for the LoAgent as defined in HIRO paper, eqn (3)
 
@@ -78,7 +77,7 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-        return -1 * np.linalg.norm(goal - next_state)
+        return -1 * np.linalg.norm((goal - next_state) / self.hi_action_space.high)
 
     def act(self, state, explore=False):
 
@@ -87,7 +86,9 @@ class MetaAgent(BaseAgent):
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.goal = self.hi_agent.act(state, explore)
+            self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1, 1)
+            hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
+            self.goal = np.multiply(self.hi_action, hi_action_scaling) # element wise
             # print (self.goal)
 
             # save for later training
@@ -133,7 +134,7 @@ class MetaAgent(BaseAgent):
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
                 self.hi_state,
-                self.goal,
+                self.hi_action, #(-1, 1)
                 self.hi_rewards,
                 next_state,
                 done,
