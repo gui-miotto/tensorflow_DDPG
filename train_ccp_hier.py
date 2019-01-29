@@ -14,13 +14,19 @@ def test_agent(n_episodes: int=10, render: bool=True):
         action_space = env.action_space,
         hi_agent=DDPGAgent, 
         lo_agent=DDPGAgent)
+
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
         state = add_batch_to_state(env.reset())
+
+        goal_state = np.squeeze(state)
+        agent.reset_clock()
+
         for steps in range(max_steps_per_ep):
             if render:
-                env.render()
+                env.render(goal_state=goal_state)
             action = agent.act(state, explore=False)
+            goal_state = np.squeeze(agent.goal)
             state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             state = add_batch_to_state(state)
 
@@ -56,6 +62,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         steps, hi_steps, score, done = 0, 0, 0, False
         loss_sum = np.array([0.,0.])
         state = add_batch_to_state(env.reset())
+        agent.reset_clock()
 
         ep += 1
 
@@ -147,5 +154,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=1, render=True)
+    train_agent(n_episodes=10, render=True)
     test_agent()

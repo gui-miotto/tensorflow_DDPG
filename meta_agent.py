@@ -16,7 +16,7 @@ class MetaAgent(BaseAgent):
                  hi_agent=HiAgent,
                  lo_agent=BaseAgent,
                  models_dir=None,
-                 c=10):
+                 c=100):
         # note, this will not work if initialised with
         # default parameters!
         # high- and lo_agent need to be explicitly set
@@ -58,6 +58,9 @@ class MetaAgent(BaseAgent):
 
         # we won't need networks etc here
 
+    def reset_clock(self):
+        self.t = 0
+
     @staticmethod
     def intrinsic_reward(state, goal, action, next_state):
         """
@@ -77,6 +80,7 @@ class MetaAgent(BaseAgent):
 
             # HL agent picks a new state from space and sets it as LL's goal
             self.goal = self.hi_agent.act(state, explore)
+            print (self.goal)
 
             # save for later training
             self.hi_state = state
