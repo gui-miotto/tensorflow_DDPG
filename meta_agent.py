@@ -87,9 +87,6 @@ class MetaAgent(BaseAgent):
             self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1, 1)
             hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
             self.goal = np.multiply(self.hi_action, hi_action_scaling) # element wise
-            prob = np.random.uniform() < 0.3
-            if prob:
-                self.goal = np.random.uniform(self.hi_action_space.low, self.hi_action_space.high, size=self.goal.shape)
             # save for later training
             self.hi_state = state
 
