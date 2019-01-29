@@ -77,7 +77,7 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-        return -1 * np.linalg.norm((goal - next_state) / self.hi_action_space.high)
+        return -1 * np.linalg.norm((goal - next_state) * 0.5 / self.hi_action_space.high)
 
     def act(self, state, explore=False):
 
