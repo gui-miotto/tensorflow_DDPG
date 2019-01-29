@@ -32,6 +32,8 @@ class MetaAgent(BaseAgent):
 
         self.hi_state = None  # state in which HL agent last took an action
 
+        self.goal = None # this will store the HL agent's actions
+
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
@@ -87,6 +89,9 @@ class MetaAgent(BaseAgent):
             self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1, 1)
             hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
             self.goal = np.multiply(self.hi_action, hi_action_scaling) # element wise
+            prob = np.random.uniform() < 0.3
+            if prob:
+                self.goal = np.random.uniform(self.hi_action_space.low, self.hi_action_space.high, size=self.goal.shape)
             # save for later training
             self.hi_state = state
 
