@@ -14,7 +14,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
         models_dir=saved_models_dir,
         state_space=env.observation_space, 
         action_space = env.action_space, #TODO clipping
-        hi_agent_cls=DDPGAgent, 
+        hi_agent_cls=DummyAgent, 
         lo_agent_cls=DDPGAgent)
 
     for ep in range(n_episodes):
@@ -44,7 +44,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
     agent = MetaAgent(
         state_space=env.observation_space,
         action_space=env.action_space, 
-        hi_agent_cls=DDPGAgent, 
+        hi_agent_cls=DummyAgent, 
         lo_agent_cls=DDPGAgent)
 
     total_steps, ep = 0, 0
