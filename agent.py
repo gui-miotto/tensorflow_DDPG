@@ -15,6 +15,17 @@ class BaseAgent:
         """
         raise NotImplementedError
 
+    def scale_action(self, action):
+        """input: action as a tanh in (-1, 1)"""
+        
+        #now need to scale up to cover the action space...
+        action = np.multiply(action, (self.action_space.high - self.action_space.low) / 2)
+
+        # ...and translate to center of action space
+        action = np.add(action, (self.action_space.high + self.action_space.low) / 2)
+
+        return action
+
     def train(self,
               state,
               action,
@@ -117,8 +128,7 @@ class HiAgent(BaseAgent):
             candidate_goals,
             np.expand_dims(original_goal, axis=0),
             np.expand_dims(lo_state_seq[-1], axis=0)
-        ],
-                                         axis=0)
+        ], axis=0)
 
         lo_policy_likelihoods = []
 
@@ -130,16 +140,14 @@ class HiAgent(BaseAgent):
             lo_stategoal_seq = np.concatenate([
                 lo_state_seq,
                 np.broadcast_to(candidate_goals[g], shape=lo_state_seq.shape)
-            ],
-                                        axis=1)
+            ], axis=1)
 
             # what actions would the current LoAgent take, given goal g?
             lo_current_actions = lo_current_policy(lo_stategoal_seq)
 
             # how far do they diverge from the actual actions, given original goal?
             # shape = (c, *action_shape)
-            lo_sq_difference = np.linalg.norm(lo_action_seq -
-                                              lo_current_actions, axis=1)**2
+            lo_sq_difference = np.linalg.norm(lo_action_seq - lo_current_actions, axis=1)**2
 
             lo_neg_sum_sq_diff = -1 * np.sum(lo_sq_difference, axis=0)
 

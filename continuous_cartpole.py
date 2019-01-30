@@ -84,13 +84,13 @@ class ContinuousCartPoleEnv(gym.Env):
         
         reward = self.reward(self)
 
-        return np.array(self.state), reward, done, {}
+        return np.expand_dims(self.state, axis=0), reward, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.state[2] += np.pi
         self.steps_beyond_done = None
-        return np.array(self.state)
+        return np.expand_dims(self.state, axis=0)
 
     def render(self, mode='human', goal_state=None):
         screen_width = 600
