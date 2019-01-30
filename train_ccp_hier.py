@@ -121,13 +121,13 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         n_episodes -= 100
                     # 'i' will increase the exploration factor
                     elif line == 'i':
-                        agent.stdev_explore += 0.1
+                        agent.epslon_greedy += 0.1
                     # 'd' will decrease the exploration factor
                     elif line == 'd':
-                        agent.stdev_explore -= 0.1
+                        agent.epslon_greedy -= 0.1
                     # 'z' will zero the exploration factor
                     elif line == 'z':
-                        agent.stdev_explore = 0.0
+                        agent.epslon_greedy = 0.0
                     # an empty line means stdin has been closed
                     else: 
                         print('eof')
@@ -137,8 +137,8 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
         #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss (hi, lo): {loss_sum}, hi_expl: {agent.hi_agent.stdev_explore:6f}, '
-            + f'lo_expl: {agent.lo_agent.stdev_explore:6f}')
+            + f'hi_loss : {loss_sum[0]:.3f}, lo_loss : {loss_sum[1]:.3f}, hi_expl: {agent.hi_agent.epslon_greedy:6f}, '
+            + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}')
         
 
     #print time statistics 
@@ -155,5 +155,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=100, render=True)
+    train_agent(n_episodes=2000, render=True)
     test_agent()

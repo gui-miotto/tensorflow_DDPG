@@ -44,20 +44,20 @@ class MetaAgent(BaseAgent):
         self.hi_action_space = deepcopy(state_space)
         self.hi_action_space.high = np.clip(
             self.hi_action_space.high, 
-            a_min=-5, a_max=5)
+            a_min=-10, a_max=10)
         self.hi_action_space.low = np.clip(
             self.hi_action_space.low,
-            a_min=-5, a_max=5) #TODO obviously - maybe pass this as a parameter to MetaAgent
+            a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
                 state_space=state_space, action_space=self.hi_action_space, use_long_buffer=True,
-                exploration_decay = 0.999)
+                epslon_greedy=0.4, exploration_decay = 0.999)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(
-                state_space=self.lo_state_space, action_space=action_space)
+                state_space=self.lo_state_space, action_space=action_space, epslon_greedy=0.7)
         else:
             self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=self.hi_action_space)
@@ -78,7 +78,14 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-        return -1 * np.linalg.norm((goal - next_state) * 0.5 / self.hi_action_space.high)
+
+        # Dealing with angle variables TODO: is it possible to know wich variables are angles from the state space?
+        assert goal.shape[0] == 1
+        difference = abs(goal - next_state)
+        difference[0,2] = difference[0,2] if difference[0,2] <= np.pi else 2 * np.pi - difference[0,2]
+        difference[0,2] *= 2.0
+
+        return -1 * np.linalg.norm(difference / (2.0 * self.hi_action_space.high))
 
     def act(self, state, explore=False):
 
@@ -87,7 +94,7 @@ class MetaAgent(BaseAgent):
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1, 1)
+            self.hi_action = self.hi_agent.act(state, explore, rough_explore=False) #this will be in (-1, 1)
             hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
             self.goal = np.multiply(self.hi_action, hi_action_scaling) # element wise
             # save for later training
@@ -97,7 +104,7 @@ class MetaAgent(BaseAgent):
 
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
-        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
+        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore, rough_explore=True)
         
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action

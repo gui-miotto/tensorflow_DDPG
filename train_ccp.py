@@ -4,6 +4,9 @@ import numpy as np
 from continuous_cartpole import ContinuousCartPoleEnv
 from ddpg_agent.ddpg_agent import DDPGAgent
 
+import matplotlib.pyplot as plt
+
+
 def add_batch_to_state(state):
     return np.expand_dims(state, axis=0)
 
@@ -38,10 +41,15 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     # create new naive agent
     agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space, 
-        action_space = env.action_space)
+        action_space=env.action_space,
+        epslon_greedy=0.6)
 
     total_steps, ep = 0, 0
     time_begin = time.time()
+
+    cart_vels = []
+    pole_vels = []
+
 
     while ep < n_episodes:
         steps, score, loss_sum, done = 0, 0, 0, False
@@ -55,7 +63,14 @@ def train_agent(n_episodes: int=1000, render: bool=False):
             steps += 1
             action = agent.act(state, explore=True)
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+
+            cart_vels.append(next_state[1])
+            pole_vels.append(next_state[3])
+
             next_state = add_batch_to_state(next_state)
+
+
+
 
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
@@ -88,13 +103,13 @@ def train_agent(n_episodes: int=1000, render: bool=False):
                         n_episodes -= 100
                     # 'i' will increase the exploration factor
                     elif line == 'i':
-                        agent.stdev_explore += 0.1
+                        agent.epslon_greedy += 0.1
                     # 'd' will decrease the exploration factor
                     elif line == 'd':
-                        agent.stdev_explore -= 0.1
+                        agent.epslon_greedy -= 0.1
                     # 'z' will zero the exploration factor
                     elif line == 'z':
-                        agent.stdev_explore = 0.0
+                        agent.epslon_greedy = 0.0
                     # an empty line means stdin has been closed
                     else: 
                         print('eof')
@@ -103,7 +118,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
         
         total_steps += steps
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
+            + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.epslon_greedy:6f}')
         
         
 
@@ -113,6 +128,16 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     print('\nElapsed time:', str(timedelta(seconds=elapsed)))
     print(f'Steps per second: {(total_steps / elapsed):.3f}\n')
 
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.plot(cart_vels)
+    ax1.set(title='Cart velocities')
+    ax2.plot(pole_vels)
+    ax2.set(title='Pole velocities')
+    plt.show()
+
+    print('Mean cart velocity', np.mean(cart_vels))
+    print('Mean pole velocity', np.mean(pole_vels))
+
     agent.save_model(saved_models_dir)
 
 
@@ -121,5 +146,9 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=2, render=False)
-    test_agent()
+    
+
+
+
+    train_agent(n_episodes=30, render=False)
+    #test_agent()

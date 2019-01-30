@@ -18,8 +18,8 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        stdev_explore = 0.6, #TODO
-        exploration_decay = 0.99999
+        epslon_greedy=0.4, #TODO
+        exploration_decay=0.9999
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -30,8 +30,8 @@ class DDPGAgent(HiAgent):
         self.train_actor_op = train_actor_op
         self.discount_factor = discount_factor
         self.tau = tau
-        self.stdev_explore = stdev_explore
-        self.exploration_decay = exploration_decay
+        self.epslon_greedy = epslon_greedy
+        self.explr_decay = exploration_decay
 
     @classmethod
     def new_trainable_agent(cls,
@@ -109,23 +109,21 @@ class DDPGAgent(HiAgent):
     #         flat_input = np.hstack((flat_input, flat_action))
     #     return flat_input
 
-    def act(self, state, explore=False):
+    def act(self, state, explore=False, rough_explore=True):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
-        # assert np.max(np.abs(action)) <= 1 #because of tanh
+        if explore and np.random.rand() < self.epslon_greedy:
+            if rough_explore:
+                action = np.ones_like(action)
+                action[np.random.rand(*action.shape) > 0.5] = -1
+            else:
+                action = (np.random.rand(*(action.shape)) * 2) - 1.
+            self.epslon_greedy = self.epslon_greedy * self.explr_decay if self.epslon_greedy > 0.05 else 0.05
 
-        if explore:
-            # todo ornstein uhlenbeck?
-            action += np.random.normal(size=self.action_space.shape[0], scale=self.stdev_explore)
-            self.stdev_explore *= self.exploration_decay
-        
-        final_action = np.clip(action, -1, 1) #still in (-1, 1) space - will be multiplied out to action space later
-
-        assert not np.isnan(final_action).any() # todo remove?
-
-        return final_action 
+        assert not np.isnan(action).any() # todo remove?
+        return action 
         
     def train(self,
               state,
