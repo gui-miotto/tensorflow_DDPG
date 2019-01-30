@@ -166,21 +166,12 @@ class MetaAgent(BaseAgent):
         # is it time to train the HL agent?
         hi_loss = None
         if self.t % self.c == 0:
-<<<<<<< HEAD
-            hi_loss, _ = self.hi_agent.train(
-                self.hi_state,
-                self.hi_action, #(-1, 1)
-                self.hi_rewards,
-                next_state,
-                done,
-=======
             hi_loss = self.hi_agent.train(
                 state=self.hi_state,
                 action=self.hi_action, #(-1, 1)
                 reward=self.hi_rewards,
                 next_state=next_state,
                 done=done,
->>>>>>> gui
                 relabel=True,
                 lo_state_seq=self.lo_state_seq,
                 lo_action_seq=self.lo_action_seq,

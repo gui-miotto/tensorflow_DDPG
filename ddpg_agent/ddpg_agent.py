@@ -190,17 +190,10 @@ class DDPGAgent(HiAgent):
         # slowly update target weights for actor and critic
         update_target_weights(self.actor_behaviour, self.actor_target)
         update_target_weights(self.critic_behaviour, self.critic_target)
-<<<<<<< HEAD
         
         loss = info.history['loss'][0]
         return loss, None #to be compatible with return type of MetaAgent
     
-=======
-
-        loss = info.history['loss'][0] # TODO: forgot why zero. Inspect
-        return loss
-
->>>>>>> gui
     def save_model(self, filepath:str):
         if not os.path.exists(filepath):
             os.mkdir(filepath)
