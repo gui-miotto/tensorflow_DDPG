@@ -159,7 +159,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         total_steps += steps
 
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'lo_loss: {loss_sum}, '
+            + f'lo_loss: {lo_loss_sum}, '
             + f'hi_loss: {hi_loss_sum:.3f}, ' if HIERARCHY else ''
             + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}'
             + f'hi_expl: {agent.hi_agent.epslon_greedy:6f}' if HIERARCHY else ''
