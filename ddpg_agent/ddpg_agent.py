@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, ReLU
+from tensorflow.keras.initializers import RandomNormal
 import os
 
 class DDPGAgent(HiAgent):
@@ -45,20 +46,23 @@ class DDPGAgent(HiAgent):
         state_dim = kwargs['state_space'].shape[0]
         n_actions = kwargs['action_space'].shape[0]
 
+        # Weights initialization
+        kernel_initializer = RandomNormal(mean=0.0, stddev=0.01, seed=None) # TODO: fix seed to test some hyperparameters that are non-network related
+
         # Create actor_behaviour network
         adam_act = tf.keras.optimizers.Adam(learning_rate_actor)
         act_behav = Sequential()
-        act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
+        act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer=kernel_initializer, activation='relu'))
+        act_behav.add(Dense(50, kernel_initializer=kernel_initializer, activation='relu'))
+        act_behav.add(Dense(n_actions, kernel_initializer=kernel_initializer, activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
 
-        # Create actor_behaviour network
+        # Create crit_behaviour network
         adam_crit = tf.keras.optimizers.Adam(learning_rate_critic)
         crit_behav = Sequential()
-        crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu')) #TODO for 2d actions
-        crit_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        crit_behav.add(Dense(1, kernel_initializer='normal'))
+        crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer=kernel_initializer, activation='relu')) #TODO for 2d actions
+        crit_behav.add(Dense(50, kernel_initializer=kernel_initializer, activation='relu'))
+        crit_behav.add(Dense(1, kernel_initializer=kernel_initializer))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
 
         # Create target networks with the same architecture of the behaviour networks
@@ -97,15 +101,6 @@ class DDPGAgent(HiAgent):
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
-    # def reshape_input(self, state, action=None):
-    #     if state.ndim == 1:
-    #         flat_input = np.expand_dims(state, 0)
-    #     else:
-    #         flat_input = state.reshape(state.shape[0], -1)
-    #     if action is not None:
-    #         flat_action = action.reshape(action.shape[0], -1)
-    #         flat_input = np.hstack((flat_input, flat_action))
-    #     return flat_input
 
     def act(self, state, explore=False, rough_explore=True):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]

@@ -40,14 +40,12 @@ class MetaAgent(BaseAgent):
 
         self.lo_state_space = deepcopy(state_space)
         self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
+        self.lo_state_space.low = np.concatenate((self.lo_state_space.low, self.lo_state_space.low))
+        self.lo_state_space.high = np.concatenate((self.lo_state_space.high, self.lo_state_space.high))
 
         self.hi_action_space = deepcopy(state_space)
-        self.hi_action_space.high = np.clip(
-            self.hi_action_space.high, 
-            a_min=-10, a_max=10)
-        self.hi_action_space.low = np.clip(
-            self.hi_action_space.low,
-            a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
+        self.hi_action_space.high = np.clip(self.hi_action_space.high, a_min=-10, a_max=10)
+        self.hi_action_space.low = np.clip(self.hi_action_space.low,a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
