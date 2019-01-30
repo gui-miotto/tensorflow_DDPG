@@ -13,8 +13,8 @@ class MetaAgent(BaseAgent):
     def __init__(self,
                  state_space,
                  action_space,
-                 hi_agent=HiAgent,
-                 lo_agent=BaseAgent,
+                 hi_agent_cls=HiAgent,
+                 lo_agent_cls=BaseAgent,
                  models_dir=None,
                  c=100):
         # note, this will not work if initialised with
@@ -62,22 +62,28 @@ class MetaAgent(BaseAgent):
         self.hi_action_space.low = np.clip(
             self.hi_action_space.low,
             a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
+        self.hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
-            self.hi_agent = hi_agent.new_trainable_agent(
-                state_space=state_space, action_space=self.hi_action_space, use_long_buffer=True,
-                epslon_greedy=0.6, exploration_decay = 0.9999)
+            self.hi_agent = hi_agent_cls.new_trainable_agent(
+                state_space=state_space, 
+                action_space=self.hi_action_space, 
+                use_long_buffer=True,
+                epslon_greedy=0.6, 
+                exploration_decay = 0.9999)
 
             # low level agent's states will be (state, goal) concatenated
-            self.lo_agent = lo_agent.new_trainable_agent(
-                state_space=self.lo_state_space, action_space=action_space, epslon_greedy=0.7,
+            self.lo_agent = lo_agent_cls.new_trainable_agent(
+                state_space=self.lo_state_space, 
+                action_space=action_space, 
+                epslon_greedy=0.7,
                 exploration_decay = 0.99999)
         else:
-            self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
+            self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=self.hi_action_space)
 
-            self.lo_agent = lo_agent.load_pretrained_agent(filepath=models_dir + '/lo_agent',
+            self.lo_agent = lo_agent_cls.load_pretrained_agent(filepath=models_dir + '/lo_agent',
                 state_space=self.lo_state_space, action_space=action_space)
 
         # we won't need networks etc here
@@ -93,13 +99,12 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-        difference = goal - next_state
+        difference = np.abs(goal - next_state)
         # so that diff between np.pi, -np.pi = 0 for angles
         difference = np.where(self.state_space_angles,
                               ((difference + np.pi) % (2 * np.pi)) - np.pi,
                               difference)
-        return -1 * np.linalg.norm(
-            (difference) * 0.5 / self.hi_action_space.high)
+        return -np.linalg.norm(difference / (2. * self.hi_action_space.high))
 
     def act(self, state, explore=False):
 
@@ -109,8 +114,7 @@ class MetaAgent(BaseAgent):
 
             # HL agent picks a new state from space and sets it as LL's goal
             self.hi_action = self.hi_agent.act(state, explore, rough_explore=False) #this will be in (-1, 1)
-            hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
-            self.goal = np.multiply(self.hi_action, hi_action_scaling) # element wise
+            self.goal = np.multiply(self.hi_action, self.hi_action_scaling) # element wise
             # save for later training
             self.hi_state = state
 
@@ -153,11 +157,11 @@ class MetaAgent(BaseAgent):
         hi_loss = None
         if self.t % self.c == 0:
             hi_loss = self.hi_agent.train(
-                self.hi_state,
-                self.hi_action, #(-1, 1)
-                self.hi_rewards,
-                next_state,
-                done,
+                state=self.hi_state,
+                action=self.hi_action, #(-1, 1)
+                reward=self.hi_rewards,
+                next_state=next_state,
+                done=done,
                 relabel=True,
                 lo_state_seq=self.lo_state_seq,
                 lo_action_seq=self.lo_action_seq,
@@ -166,7 +170,7 @@ class MetaAgent(BaseAgent):
             # reset this
             self.hi_rewards = 0
 
-        return lo_loss, hi_loss
+        return lo_loss, hi_loss, lo_reward
 
 
     def save_model(self, filepath:str):

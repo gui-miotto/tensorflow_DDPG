@@ -47,21 +47,23 @@ class DDPGAgent(HiAgent):
         n_actions = kwargs['action_space'].shape[0]
 
         # Weights initialization
+        n_units_1 = 100
+        n_units_2 = 50
         kernel_initializer = RandomNormal(mean=0.0, stddev=0.01, seed=None) # TODO: fix seed to test some hyperparameters that are non-network related
 
         # Create actor_behaviour network
         adam_act = tf.keras.optimizers.Adam(learning_rate_actor)
         act_behav = Sequential()
-        act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer=kernel_initializer, activation='relu'))
-        act_behav.add(Dense(50, kernel_initializer=kernel_initializer, activation='relu'))
+        act_behav.add(Dense(n_units_1, input_dim=state_dim, kernel_initializer=kernel_initializer, activation='relu'))
+        act_behav.add(Dense(n_units_2, kernel_initializer=kernel_initializer, activation='relu'))
         act_behav.add(Dense(n_actions, kernel_initializer=kernel_initializer, activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
 
         # Create crit_behaviour network
         adam_crit = tf.keras.optimizers.Adam(learning_rate_critic)
         crit_behav = Sequential()
-        crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer=kernel_initializer, activation='relu')) #TODO for 2d actions
-        crit_behav.add(Dense(50, kernel_initializer=kernel_initializer, activation='relu'))
+        crit_behav.add(Dense(n_units_1, input_dim=state_dim+n_actions, kernel_initializer=kernel_initializer, activation='relu'))
+        crit_behav.add(Dense(n_units_2, kernel_initializer=kernel_initializer, activation='relu'))
         crit_behav.add(Dense(1, kernel_initializer=kernel_initializer))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
 
@@ -133,7 +135,15 @@ class DDPGAgent(HiAgent):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
         
-        self.replay_buffer.add(np.squeeze(state, axis=0), np.squeeze(action, axis=0), np.squeeze(next_state, axis=0), reward, done, lo_state_seq, lo_action_seq)
+        self.replay_buffer.add(
+            state_before=np.squeeze(state, axis=0), 
+            action=np.squeeze(action, axis=0), 
+            state_after=np.squeeze(next_state, axis=0), 
+            reward=reward, 
+            done_flag=done, 
+            lo_state_seq=lo_state_seq, 
+            lo_action_seq=lo_action_seq)
+
         #sample a batch
         batch = self.replay_buffer.sample_batch()
 
@@ -173,7 +183,7 @@ class DDPGAgent(HiAgent):
         update_target_weights(self.actor_behaviour, self.actor_target)
         update_target_weights(self.critic_behaviour, self.critic_target)
         
-        loss = info.history['loss'][0]
+        loss = info.history['loss'][0] # TODO: forgot why zero. Inspect
         return loss
     
     def save_model(self, filepath:str):

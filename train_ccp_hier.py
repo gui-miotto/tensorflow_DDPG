@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 from continuous_cartpole import ContinuousCartPoleEnv
 from ddpg_agent.ddpg_agent import DDPGAgent
+from ddpg_agent.dummy_agent import DummyAgent
+
 from meta_agent import MetaAgent
 
 def test_agent(n_episodes: int=10, render: bool=True):
@@ -12,12 +14,12 @@ def test_agent(n_episodes: int=10, render: bool=True):
         models_dir=saved_models_dir,
         state_space=env.observation_space, 
         action_space = env.action_space, #TODO clipping
-        hi_agent=DDPGAgent, 
-        lo_agent=DDPGAgent)
+        hi_agent_cls=DummyAgent, 
+        lo_agent_cls=DDPGAgent)
 
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
-        state = add_batch_to_state(env.reset())
+        state = env.reset()
 
         goal_state = np.squeeze(state)
         agent.reset_clock()
@@ -28,7 +30,6 @@ def test_agent(n_episodes: int=10, render: bool=True):
             action = agent.act(state, explore=False)
             goal_state = np.squeeze(agent.goal)
             state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            state = add_batch_to_state(state)
 
             steps += 1
             score += reward
@@ -37,22 +38,23 @@ def test_agent(n_episodes: int=10, render: bool=True):
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
     
 
-def add_batch_to_state(state):
-    return np.expand_dims(state, axis=0)
-
 def train_agent(n_episodes: int=1000, render: bool=True):
     env = ContinuousCartPoleEnv() 
-    # todo: not compatible with 'CartPole-v1' 
 
-    agent = MetaAgent(env.observation_space, env.action_space, hi_agent=DDPGAgent, lo_agent=DDPGAgent)
+    agent = MetaAgent(
+        state_space=env.observation_space,
+        action_space=env.action_space, 
+        hi_agent_cls=DummyAgent, 
+        lo_agent_cls=DDPGAgent)
 
     total_steps, ep = 0, 0
     time_begin = time.time()
 
     while ep < n_episodes:
         steps, hi_steps, score, done = 0, 0, 0, False
+        lo_rewards = []
         loss_sum = np.array([0.,0.])
-        state = add_batch_to_state(env.reset())
+        state = env.reset()
         agent.reset_clock()
 
         ep += 1
@@ -62,7 +64,6 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         while not done and steps < max_steps_per_ep:
             if render:
                 env.render(goal_state=goal_state)
-                pass
 
             steps += 1
             action = agent.act(state, explore=True)
@@ -70,17 +71,13 @@ def train_agent(n_episodes: int=1000, render: bool=True):
             goal_state = np.squeeze(agent.goal)
 
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            next_state = add_batch_to_state(next_state)
-
-            # reward shaping ;-)
-            # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
-            # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
 
             if steps >= max_steps_per_ep:
                 reward -= 1
 
-            lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
-            
+            lo_loss, hi_loss, lo_rew = agent.train(state, action, reward, next_state, done)
+            lo_rewards.append(lo_rew)
+
             if hi_loss is not None:
                 hi_steps += 1
                 loss_sum[0] += (1 / hi_steps) * (hi_loss - loss_sum[0]) # avoids need to divide by num steps at end
@@ -123,7 +120,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         #exit(0)
         
         total_steps += steps
-        print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+        print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, lo_reward: {np.mean(lo_rewards):.4f}, ' 
             + f'hi_loss : {loss_sum[0]:.3f}, lo_loss : {loss_sum[1]:.3f}, hi_expl: {agent.hi_agent.epslon_greedy:6f}, '
             + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}')
         
@@ -142,5 +139,5 @@ if __name__ == "__main__":
     saved_models_dir = './saved_models'
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=5, render=True)
+    train_agent(n_episodes=1000, render=True)
     test_agent()
