@@ -180,7 +180,7 @@ class MetaAgent(BaseAgent):
             # reset this
             self.hi_rewards = 0
 
-        return lo_loss, hi_loss, lo_reward
+        return lo_loss, hi_loss, self.lo_reward
 
 
     def save_model(self, filepath:str):
