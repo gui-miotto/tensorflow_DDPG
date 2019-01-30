@@ -112,11 +112,11 @@ class HiAgent(BaseAgent):
             size=(n_candidate_goals, *original_goal.shape))
 
         # also include the original goal gt 
-        # and a goal corresponding to the difference st+c − st
+        # and a goal corresponding to the final state st+c
         candidate_goals = np.concatenate([
             candidate_goals,
             np.expand_dims(original_goal, axis=0),
-            np.expand_dims(lo_state_seq[-1] - lo_state_seq[0], axis=0)
+            np.expand_dims(lo_state_seq[-1], axis=0)
         ],
                                          axis=0)
 
