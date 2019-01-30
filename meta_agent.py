@@ -30,7 +30,8 @@ class MetaAgent(BaseAgent):
 
         self.hi_state = None  # state in which HL agent last took an action
 
-        self.goal = None # this will store the HL agent's actions
+        self.hi_action = None # HL agent's actions in (-1, 1) space (direct from network)
+        self.goal = None # HL agent's actions translated to (low, high) space
 
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
@@ -40,9 +41,19 @@ class MetaAgent(BaseAgent):
         self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
 
         self.hi_action_space = deepcopy(state_space)
+
+        # figure out if any of the states are angles in (-pi, pi)
+        # so that we can calculate distances between them properly in the intrinsic reward function
+        # this is an example of "artifical intelligence"
+        self.state_space_angles = np.logical_and(
+            np.isclose(state_space.high, np.pi),
+            np.isclose(state_space.low, -np.pi))  
+
+        # this is needed to deal with the unbounded state space for velocities
+        # so that we have something finite for the HL agent to set goals in.
         self.hi_action_space.high = np.clip(
-            self.hi_action_space.high, 
-            a_min=-10, a_max=10)
+            self.hi_action_space.high,
+            a_min=-10, a_max=10) # TODO - revisit for bipedalwalker?
         self.hi_action_space.low = np.clip(
             self.hi_action_space.low,
             a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
@@ -75,7 +86,13 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-        return -1 * np.linalg.norm((goal - next_state) * 0.5 / self.hi_action_space.high)
+        difference = goal - next_state
+        # so that diff between np.pi, -np.pi = 0 for angles
+        difference = np.where(self.state_space_angles,
+                              ((difference + np.pi) % (2 * np.pi)) - np.pi,
+                              difference)
+        return -1 * np.linalg.norm(
+            (difference) * 0.5 / self.hi_action_space.high)
 
     def act(self, state, explore=False):
 
@@ -98,7 +115,7 @@ class MetaAgent(BaseAgent):
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
         lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
-        
+
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action
 
@@ -146,7 +163,7 @@ class MetaAgent(BaseAgent):
             self.hi_rewards = 0
 
         return lo_loss, hi_loss
-    
+
 
     def save_model(self, filepath:str):
         self.hi_agent.save_model(filepath + '/hi_agent')
