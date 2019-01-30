@@ -37,8 +37,13 @@ class MetaAgent(BaseAgent):
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
 
-        self.lo_state_space = deepcopy(state_space)
-        self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
+        # self.lo_state_space = deepcopy(state_space)
+        # self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
+        # CHANGED - this leads to an inconsistent box: .high and .low are still original shape
+        self.lo_state_space = gym.spaces.Box(
+            low=np.concatenate([state_space.low, state_space.low]),
+            high=np.concatenate([state_space.high, state_space.high]),
+            dtype=state_space.dtype)
 
         self.hi_action_space = deepcopy(state_space)
 
@@ -47,7 +52,7 @@ class MetaAgent(BaseAgent):
         # this is an example of "artifical intelligence"
         self.state_space_angles = np.logical_and(
             np.isclose(state_space.high, np.pi),
-            np.isclose(state_space.low, -np.pi))  
+            np.isclose(state_space.low, -np.pi))
 
         # this is needed to deal with the unbounded state space for velocities
         # so that we have something finite for the HL agent to set goals in.
