@@ -49,7 +49,7 @@ class DDPGAgent(HiAgent):
         # Weights initialization
         n_units_1 = 100
         n_units_2 = 50
-        kernel_initializer = RandomNormal(mean=0.0, stddev=0.01, seed=None) # TODO: fix seed to test some hyperparameters that are non-network related
+        kernel_initializer = RandomNormal(mean=0.0, stddev=0.000001, seed=None) # TODO: fix seed to test some hyperparameters that are non-network related
 
         # Create actor_behaviour network
         adam_act = tf.keras.optimizers.Adam(learning_rate_actor)

@@ -102,9 +102,13 @@ class MetaAgent(BaseAgent):
         difference = np.abs(goal - next_state)
         # so that diff between np.pi, -np.pi = 0 for angles
         difference = np.where(self.state_space_angles,
-                              ((difference + np.pi) % (2 * np.pi)) - np.pi,
+                              np.abs(((difference + np.pi) % (2 * np.pi)) - np.pi),
                               difference)
-        return -np.linalg.norm(difference / (2. * self.hi_action_space.high))
+        
+        normalized_differences = difference / (self.hi_action_space.high - self.hi_action_space.low)
+        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) ** 2
+        
+        return final_reward
 
     def act(self, state, explore=False):
 
@@ -137,7 +141,7 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        lo_reward = self.intrinsic_reward(state, self.goal, action, next_state)
+        lo_reward = self.intrinsic_reward(state, self.goal, action, next_state) - 10*done
 
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
