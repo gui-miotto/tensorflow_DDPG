@@ -150,7 +150,11 @@ class DDPGAgent(HiAgent):
         # off policy correction / relabelling!
         if relabel:
             for i in range(batch.actions.shape[0]): #TODO make r_g fn accept batches
-                batch.actions[i] = self.relabel_goal(batch.actions[i], batch.lo_state_seqs[i], batch.lo_action_seqs[i], lo_current_policy)
+                batch.actions[i] = self.relabel_goal(
+                    original_goal=batch.actions[i],
+                    lo_state_seq=batch.lo_state_seqs[i], 
+                    lo_action_seq=batch.lo_action_seqs[i],
+                    lo_current_policy=lo_current_policy)
 
         # ask actor target network for actions ...
         # target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))

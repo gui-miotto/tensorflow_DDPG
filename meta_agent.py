@@ -137,7 +137,7 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        lo_reward = self.intrinsic_reward(state, self.goal, action, next_state)
+        lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state)
 
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
