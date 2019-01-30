@@ -32,6 +32,7 @@ class MetaAgent(BaseAgent):
 
         self.hi_action = None # HL agent's actions in (-1, 1) space (direct from network)
         self.goal = None # HL agent's actions translated to (low, high) space
+        self.lo_reward = None # so that this can be retrieved for score display
 
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
@@ -133,7 +134,7 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        lo_reward = self.intrinsic_reward(state, self.goal, action, next_state)
+        self.lo_reward = self.intrinsic_reward(state, self.goal, action, next_state)
 
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
@@ -144,7 +145,7 @@ class MetaAgent(BaseAgent):
         lo_loss, _ = self.lo_agent.train(
             np.concatenate([state, self.goal], axis=1),
             action,
-            lo_reward,
+            self.lo_reward,
             np.concatenate([next_state, self.goal], axis=1),
             done,
             relabel=False)
