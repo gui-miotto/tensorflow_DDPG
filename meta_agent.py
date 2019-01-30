@@ -21,8 +21,6 @@ class MetaAgent(BaseAgent):
         # default parameters!
         # high- and lo_agent need to be explicitly set
 
-        # self.state_space = state_space
-        # self.action_space = action_space
         super().__init__(state_space, action_space)
 
         self.c = c  # number of time steps between high level actions
@@ -32,20 +30,38 @@ class MetaAgent(BaseAgent):
 
         self.hi_state = None  # state in which HL agent last took an action
 
-        self.goal = None # this will store the HL agent's actions
+        self.hi_action = None # HL agent's actions in (-1, 1) space (direct from network)
+        self.goal = None # HL agent's actions translated to (low, high) space
 
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
 
-        self.lo_state_space = deepcopy(state_space)
-        self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
-        self.lo_state_space.low = np.concatenate((self.lo_state_space.low, self.lo_state_space.low))
-        self.lo_state_space.high = np.concatenate((self.lo_state_space.high, self.lo_state_space.high))
+        # self.lo_state_space = deepcopy(state_space)
+        # self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
+        # CHANGED - this leads to an inconsistent box: .high and .low are still original shape
+        self.lo_state_space = gym.spaces.Box(
+            low=np.concatenate([state_space.low, state_space.low]),
+            high=np.concatenate([state_space.high, state_space.high]),
+            dtype=state_space.dtype)
 
         self.hi_action_space = deepcopy(state_space)
-        self.hi_action_space.high = np.clip(self.hi_action_space.high, a_min=-10, a_max=10)
-        self.hi_action_space.low = np.clip(self.hi_action_space.low,a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
+
+        # figure out if any of the states are angles in (-pi, pi)
+        # so that we can calculate distances between them properly in the intrinsic reward function
+        # this is an example of "artifical intelligence"
+        self.state_space_angles = np.logical_and(
+            np.isclose(state_space.high, np.pi),
+            np.isclose(state_space.low, -np.pi))
+
+        # this is needed to deal with the unbounded state space for velocities
+        # so that we have something finite for the HL agent to set goals in.
+        self.hi_action_space.high = np.clip(
+            self.hi_action_space.high,
+            a_min=-10, a_max=10) # TODO - revisit for bipedalwalker?
+        self.hi_action_space.low = np.clip(
+            self.hi_action_space.low,
+            a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
@@ -77,15 +93,13 @@ class MetaAgent(BaseAgent):
         note: action does not figure in the formula - this is apparently deliberate
         todo - make this a customisable function?
         """
-
-        # Dealing with angle variables TODO: is it possible to know wich variables are angles from the state space?
-        
-        
-        assert goal.shape[0] == 1
-        difference = abs(goal - next_state)
-        difference[0,2] = difference[0,2] if difference[0,2] <= np.pi else 2 * np.pi - difference[0,2]
-        difference[0,2] *= 2.0
-        return -1 * np.linalg.norm(difference / (2.0 * self.hi_action_space.high))
+        difference = goal - next_state
+        # so that diff between np.pi, -np.pi = 0 for angles
+        difference = np.where(self.state_space_angles,
+                              ((difference + np.pi) % (2 * np.pi)) - np.pi,
+                              difference)
+        return -1 * np.linalg.norm(
+            (difference) * 0.5 / self.hi_action_space.high)
 
     def act(self, state, explore=False):
 
@@ -153,7 +167,7 @@ class MetaAgent(BaseAgent):
             self.hi_rewards = 0
 
         return lo_loss, hi_loss
-    
+
 
     def save_model(self, filepath:str):
         self.hi_agent.save_model(filepath + '/hi_agent')
