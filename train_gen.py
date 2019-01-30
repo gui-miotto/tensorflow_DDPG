@@ -8,7 +8,7 @@ from meta_agent import MetaAgent
 
 NAME = 'agent'
 COMPLEXENV = False # not implemented yet!
-HIERARCHY = False
+HIERARCHY = True
 # TODO: make these args
 
 def ensure_path(p):
@@ -45,9 +45,16 @@ def test_agent(n_episodes: int=10, render: bool=True):
 
         for steps in range(max_steps_per_ep):
             if render:
-                env.render(goal_state=goal_state) #
+                if not HIERARCHY:
+                    env.render()
+                else:
+                    env.render(goal_state=goal_state)
+            
             action = agent.act(state, explore=False)
-            goal_state = np.squeeze(agent.goal)
+            
+            if HIERARCHY:
+                goal_state = np.squeeze(agent.goal)
+            
             state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             state = add_batch_to_state(state)
 
@@ -158,13 +165,19 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         
         total_steps += steps
 
-        print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-            + f'lo_loss: {lo_loss_sum}, '
-            + f'hi_loss: {hi_loss_sum:.3f}, ' if HIERARCHY else ''
-            + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}'
-            + f'hi_expl: {agent.hi_agent.epslon_greedy:6f}' if HIERARCHY else ''
-            )
-        
+        if not HIERARCHY:
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+                + f'loss: {lo_loss_sum:.3f}, '
+                + f'expl: {agent.epslon_greedy:6f}'
+                )
+        else:
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+                + f'lo_loss: {lo_loss_sum:.3f}, '
+                + f'hi_loss: {hi_loss_sum:.3f}, '
+                + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}, '
+                + f'hi_expl: {agent.hi_agent.epslon_greedy:6f}'
+                )
+
     #print time statistics 
     time_end = time.time()
     elapsed = time_end - time_begin
@@ -181,4 +194,4 @@ if __name__ == "__main__":
 
 
     train_agent(n_episodes=3, render=True)
-    # test_agent()
+    test_agent()
