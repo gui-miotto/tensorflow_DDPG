@@ -139,7 +139,7 @@ class HiAgent(BaseAgent):
             # how far do they diverge from the actual actions, given original goal?
             # shape = (c, *action_shape)
             lo_sq_difference = np.linalg.norm(lo_action_seq -
-                                              lo_current_actions)**2
+                                              lo_current_actions, axis=1)**2
 
             lo_neg_sum_sq_diff = -1 * np.sum(lo_sq_difference, axis=0)
 
