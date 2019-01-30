@@ -81,11 +81,12 @@ class MetaAgent(BaseAgent):
         """
 
         # Dealing with angle variables TODO: is it possible to know wich variables are angles from the state space?
+        
+        
         assert goal.shape[0] == 1
         difference = abs(goal - next_state)
         difference[0,2] = difference[0,2] if difference[0,2] <= np.pi else 2 * np.pi - difference[0,2]
         difference[0,2] *= 2.0
-
         return -1 * np.linalg.norm(difference / (2.0 * self.hi_action_space.high))
 
     def act(self, state, explore=False):

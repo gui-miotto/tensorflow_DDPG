@@ -56,6 +56,10 @@ def train_agent(n_episodes: int=1000, render: bool=False):
         state = add_batch_to_state(env.reset())
         ep += 1
 
+        cart_vel = []
+        pole_vel = []
+
+
         while not done and steps < max_steps_per_ep:
             if render:
                 env.render()
@@ -64,8 +68,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
             action = agent.act(state, explore=True)
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
 
-            cart_vels.append(next_state[1])
-            pole_vels.append(next_state[3])
+            cart_vel.append(next_state[1])
+            pole_vel.append(next_state[3])
 
             next_state = add_batch_to_state(next_state)
 
@@ -120,6 +124,8 @@ def train_agent(n_episodes: int=1000, render: bool=False):
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
             + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.epslon_greedy:6f}')
         
+        cart_vels.append(max(cart_vel))
+        pole_vels.append(max(pole_vel))
         
 
     #print time statistics 
@@ -128,6 +134,9 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     print('\nElapsed time:', str(timedelta(seconds=elapsed)))
     print(f'Steps per second: {(total_steps / elapsed):.3f}\n')
 
+    print('Mean cart velocity', np.mean(cart_vels))
+    print('Mean pole velocity', np.mean(pole_vels))
+
     fig, (ax1, ax2) = plt.subplots(1, 2)
     ax1.plot(cart_vels)
     ax1.set(title='Cart velocities')
@@ -135,8 +144,7 @@ def train_agent(n_episodes: int=1000, render: bool=False):
     ax2.set(title='Pole velocities')
     plt.show()
 
-    print('Mean cart velocity', np.mean(cart_vels))
-    print('Mean pole velocity', np.mean(pole_vels))
+
 
     agent.save_model(saved_models_dir)
 

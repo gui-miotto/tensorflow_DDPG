@@ -50,28 +50,20 @@ class DDPGAgent(HiAgent):
         act_behav = Sequential()
         act_behav.add(Dense(100, input_dim=state_dim, kernel_initializer='normal', activation='relu'))
         act_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        # act_behav.add(Dense(50, kernel_initializer='normal'))
-        # act_behav.add(BatchNormalization())
-        # act_behav.add(ReLU())
         act_behav.add(Dense(n_actions, kernel_initializer='normal', activation='tanh'))
         act_behav.compile(loss='mean_squared_error', optimizer=adam_act)
-        
-        # Create actor_target network. At first, it is just a copy of actor_behaviour
-        act_targ = tf.keras.models.clone_model(act_behav)
 
         # Create actor_behaviour network
         adam_crit = tf.keras.optimizers.Adam(learning_rate_critic)
         crit_behav = Sequential()
         crit_behav.add(Dense(100, input_dim=state_dim+n_actions, kernel_initializer='normal', activation='relu')) #TODO for 2d actions
         crit_behav.add(Dense(50, kernel_initializer='normal', activation='relu'))
-        # crit_behav.add(Dense(50, kernel_initializer='normal'))
-        # crit_behav.add(BatchNormalization())
-        # crit_behav.add(ReLU())
         crit_behav.add(Dense(1, kernel_initializer='normal'))
         crit_behav.compile(loss='mean_squared_error', optimizer=adam_crit) # todo: actor doesnt have a explicit loss, why are we specifying one
 
-        # Create critic_target network. At first, it is just a copy of critic_behaviour
+        # Create target networks with the same architecture of the behaviour networks
         crit_targ = tf.keras.models.clone_model(crit_behav)
+        act_targ = tf.keras.models.clone_model(act_behav)
 
         # Construct tensorflow graph for actor gradients
         critic_gradient = tf.gradients(crit_behav.output, crit_behav.input)[0][:,state_dim:] #the ACTION is the fifth element of this array (we concatenated it with the state)
@@ -80,11 +72,17 @@ class DDPGAgent(HiAgent):
         #normalized_actor_gradient = zip(actor_gradient, self.actor_behaviour.trainable_variables)
         normalized_actor_gradient = zip(list(map(lambda x: tf.div(x, batch_size), actor_gradient)), act_behav.trainable_variables)
         train_actor = tf.train.AdamOptimizer(learning_rate_actor).apply_gradients(normalized_actor_gradient)
+
+        # Initialize variable
         session = tf.keras.backend.get_session()
         session.run(tf.global_variables_initializer())
 
+        # Makes sure that target and behaviour start equal
+        crit_targ.set_weights(crit_behav.get_weights())
+        act_targ.set_weights(act_behav.get_weights())
+
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=150000,batch_size=batch_size, use_long=use_long_buffer)
+        replay_buffer = ReplayBuffer(buffer_size=80000,batch_size=batch_size, use_long=use_long_buffer)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
