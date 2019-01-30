@@ -97,22 +97,12 @@ class DDPGAgent(HiAgent):
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
-    # def reshape_input(self, state, action=None):
-    #     if state.ndim == 1:
-    #         flat_input = np.expand_dims(state, 0)
-    #     else:
-    #         flat_input = state.reshape(state.shape[0], -1)
-    #     if action is not None:
-    #         flat_action = action.reshape(action.shape[0], -1)
-    #         flat_input = np.hstack((flat_input, flat_action))
-    #     return flat_input
 
     def act(self, state, explore=False):
-        # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
-        # assert np.max(np.abs(action)) <= 1 #because of tanh
+        assert np.max(np.abs(action)) <= 1 #because of tanh
 
         if explore:
             # todo ornstein uhlenbeck?

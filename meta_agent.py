@@ -21,8 +21,6 @@ class MetaAgent(BaseAgent):
         # default parameters!
         # high- and lo_agent need to be explicitly set
 
-        # self.state_space = state_space
-        # self.action_space = action_space
         super().__init__(state_space, action_space)
 
         self.c = c  # number of time steps between high level actions

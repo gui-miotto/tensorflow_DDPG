@@ -44,15 +44,6 @@ def train_agent(n_episodes: int=1000, render: bool=True):
     env = ContinuousCartPoleEnv() 
     # todo: not compatible with 'CartPole-v1' 
 
-    # create new naive agent
-    # hi_agent = DDPGAgent.new_trainable_agent(
-    #     state_space=env.observation_space, 
-    #     action_space = env.action_space)
-
-    # lo_agent = DDPGAgent.new_trainable_agent(
-    #     state_space=env.observation_space, 
-    #     action_space = env.action_space)
-
     agent = MetaAgent(env.observation_space, env.action_space, hi_agent=DDPGAgent, lo_agent=DDPGAgent)
 
     total_steps, ep = 0, 0
@@ -94,8 +85,6 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                 hi_steps += 1
                 loss_sum[0] += (1 / hi_steps) * (hi_loss - loss_sum[0]) # avoids need to divide by num steps at end
             
-            # loss_sum += np.array(loss)
-            
             # lo_loss
             loss_sum[1] += (1 / steps) * (lo_loss - loss_sum[1]) # avoids need to divide by num steps at end
             
@@ -134,8 +123,6 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         #exit(0)
         
         total_steps += steps
-        #print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
-        #    + f'average loss: {loss_sum/steps:.5f}, exploration: {agent.stdev_explore:6f}')
         print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
             + f'average loss (hi, lo): {loss_sum}, exploration: {agent.hi_agent.stdev_explore:6f}')
         
