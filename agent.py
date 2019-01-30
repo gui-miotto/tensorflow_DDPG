@@ -116,9 +116,8 @@ class HiAgent(BaseAgent):
         candidate_goals = np.concatenate([
             candidate_goals,
             np.expand_dims(original_goal, axis=0),
-            np.expand_dims(lo_state_seq[-1] - lo_state_seq[0], axis=0)
-        ],
-                                         axis=0)
+            np.expand_dims(lo_state_seq[-1], axis=0)
+        ], axis=0)
 
         lo_policy_likelihoods = []
 
@@ -130,16 +129,14 @@ class HiAgent(BaseAgent):
             lo_stategoal_seq = np.concatenate([
                 lo_state_seq,
                 np.broadcast_to(candidate_goals[g], shape=lo_state_seq.shape)
-            ],
-                                        axis=1)
+            ], axis=1)
 
             # what actions would the current LoAgent take, given goal g?
             lo_current_actions = lo_current_policy(lo_stategoal_seq)
 
             # how far do they diverge from the actual actions, given original goal?
             # shape = (c, *action_shape)
-            lo_sq_difference = np.linalg.norm(lo_action_seq -
-                                              lo_current_actions)**2
+            lo_sq_difference = np.linalg.norm(lo_action_seq - lo_current_actions, axis=1)**2
 
             lo_neg_sum_sq_diff = -1 * np.sum(lo_sq_difference, axis=0)
 
