@@ -141,7 +141,7 @@ class MetaAgent(BaseAgent):
         # note: if the hi-agent picks a new goal in the next step, then this line will not be quite right.
         # but maybe it's actually better this way...
 
-        lo_loss = self.lo_agent.train(
+        lo_loss, _ = self.lo_agent.train(
             np.concatenate([state, self.goal], axis=1),
             action,
             lo_reward,
@@ -152,7 +152,7 @@ class MetaAgent(BaseAgent):
         # is it time to train the HL agent?
         hi_loss = None
         if self.t % self.c == 0:
-            hi_loss = self.hi_agent.train(
+            hi_loss, _ = self.hi_agent.train(
                 self.hi_state,
                 self.hi_action, #(-1, 1)
                 self.hi_rewards,

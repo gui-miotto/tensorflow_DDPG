@@ -174,7 +174,7 @@ class DDPGAgent(HiAgent):
         update_target_weights(self.critic_behaviour, self.critic_target)
         
         loss = info.history['loss'][0]
-        return loss
+        return loss, None #to be compatible with return type of MetaAgent
     
     def save_model(self, filepath:str):
         if not os.path.exists(filepath):
