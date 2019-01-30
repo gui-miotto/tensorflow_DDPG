@@ -1,0 +1,25 @@
+lo_agent_cls
+
+in meta_agent, call methods with named keywords
+agent = MetaAgent(
+        state_space=
+
+
+# move this to inside the environment
+add_batch_to_state(env.reset())
+
+
+
+env.render(goal_state=goal_state)
+pass # remove pass
+
+
+
+hi_action_scaling can be defined just once (outside of act)
+
+
+Do we need this?
+goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
+
+
+
