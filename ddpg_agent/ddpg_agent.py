@@ -8,8 +8,8 @@ from tensorflow.keras.initializers import RandomNormal
 import os
 
 class DDPGAgent(HiAgent):
-    def __init__(self, 
-        state_space: 'Box'=None, 
+    def __init__(self,
+        state_space: 'Box'=None,
         action_space: 'Box'=None,
         actor_behaviour: Sequential=None,
         actor_target: Sequential=None,
@@ -119,9 +119,9 @@ class DDPGAgent(HiAgent):
 
         action = np.clip(action, a_min=-1, a_max=1)
 
-        assert not np.isnan(action).any() # todo remove?
-        return action 
-        
+        assert not np.isnan(action).any()
+        return action
+
     def train(self,
               state,
               action,
@@ -134,7 +134,7 @@ class DDPGAgent(HiAgent):
               lo_current_policy=None):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
-        
+
         self.replay_buffer.add(
             state_before=np.squeeze(state, axis=0), 
             action=np.squeeze(action, axis=0), 
@@ -182,17 +182,17 @@ class DDPGAgent(HiAgent):
             target_weights = target.get_weights()
             new_target_weights = [self.tau*b + (1-self.tau)*t for b, t in zip(behaviour_weights, target_weights)]
             target.set_weights(new_target_weights)
-        
+
         # slowly update target weights for actor and critic
         update_target_weights(self.actor_behaviour, self.actor_target)
         update_target_weights(self.critic_behaviour, self.critic_target)
-        
+
         loss = info.history['loss'][0] # TODO: forgot why zero. Inspect
         return loss
-    
+
     def save_model(self, filepath:str):
         if not os.path.exists(filepath):
-            os.mkdir(filepath)  
+            os.mkdir(filepath)
 
         tf.keras.models.save_model(self.actor_behaviour, filepath+'/actbeh.model')
         tf.keras.models.save_model(self.actor_target, filepath+'/acttar.model')

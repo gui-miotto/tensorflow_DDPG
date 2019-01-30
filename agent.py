@@ -15,6 +15,17 @@ class BaseAgent:
         """
         raise NotImplementedError
 
+    def scale_action(self, action):
+        """input: action as a tanh in (-1, 1)"""
+        
+        #now need to scale up to cover the action space...
+        action = np.multiply(action, (self.action_space.high - self.action_space.low) / 2)
+
+        # ...and translate to center of action space
+        action = np.add(action, (self.action_space.high + self.action_space.low) / 2)
+
+        return action
+
     def train(self,
               state,
               action,

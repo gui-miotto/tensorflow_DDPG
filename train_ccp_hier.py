@@ -29,7 +29,8 @@ def test_agent(n_episodes: int=10, render: bool=True):
                 env.render(goal_state=goal_state)
             action = agent.act(state, explore=False)
             goal_state = np.squeeze(agent.goal)
-            state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            scaled_action = agent.scale_action(action)
+            state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
             steps += 1
             score += reward
@@ -67,10 +68,11 @@ def train_agent(n_episodes: int=1000, render: bool=True):
 
             steps += 1
             action = agent.act(state, explore=True)
-            
+            scaled_action = agent.scale_action(action)
+
             goal_state = np.squeeze(agent.goal)
 
-            next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
             if steps >= max_steps_per_ep:
                 reward -= 1

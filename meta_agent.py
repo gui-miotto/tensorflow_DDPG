@@ -62,7 +62,6 @@ class MetaAgent(BaseAgent):
         self.hi_action_space.low = np.clip(
             self.hi_action_space.low,
             a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
-        self.hi_action_scaling = (self.hi_action_space.high - self.hi_action_space.low) / 2
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
@@ -117,8 +116,9 @@ class MetaAgent(BaseAgent):
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state, explore, rough_explore=False) #this will be in (-1, 1)
-            self.goal = np.multiply(self.hi_action, self.hi_action_scaling) # element wise
+            self.hi_action = self.hi_agent.act(state, explore, rough_explore=False) #this will be in (-1
+            self.goal = self.hi_agent.scale_action(self.hi_action)
+
             # save for later training
             self.hi_state = state
 
