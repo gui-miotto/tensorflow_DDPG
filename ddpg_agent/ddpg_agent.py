@@ -5,6 +5,8 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten, BatchNormalization, ReLU
 from tensorflow.keras.initializers import RandomNormal
+from ddpg_agent.ou_noise import OUNoise
+
 import os
 
 class DDPGAgent(HiAgent):
@@ -20,7 +22,8 @@ class DDPGAgent(HiAgent):
         discount_factor=0.99,
         tau=0.001,
         epslon_greedy=0.4, #TODO
-        exploration_decay=0.9999
+        exploration_decay=0.9999,
+        use_ou_noise=False
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -33,6 +36,8 @@ class DDPGAgent(HiAgent):
         self.tau = tau
         self.epslon_greedy = epslon_greedy
         self.explr_decay = exploration_decay
+        self.use_ou_noise = use_ou_noise
+        self.ou_noise = OUNoise(self.action_space.shape[0])
 
     @classmethod
     def new_trainable_agent(cls,
@@ -104,19 +109,17 @@ class DDPGAgent(HiAgent):
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
 
-    def act(self, state, explore=False, rough_explore=True):
+    def act(self, state, explore=False):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
-        if explore and np.random.rand() < self.epslon_greedy:
-            if rough_explore:
-                action = np.ones_like(action)
-                action[np.random.rand(*action.shape) > 0.5] = -1
-            else:
-                action = (np.random.rand(*(action.shape)) * 2) - 1.
+        if explore:
+            noise = self.ou_noise.noise()
+            action = (1-self.epslon_greedy)*action + noise * self.epslon_greedy
+            
             self.epslon_greedy = self.epslon_greedy * self.explr_decay if self.epslon_greedy > 0.05 else 0.05
-
+        
         action = np.clip(action, a_min=-1, a_max=1)
 
         assert not np.isnan(action).any()
@@ -134,7 +137,6 @@ class DDPGAgent(HiAgent):
               lo_current_policy=None):
         assert self.replay_buffer is not None, 'It seems like you are trying to train a pretrained model. Not cool, dude.'
         # add a transition to the buffer
-
         self.replay_buffer.add(
             state_before=np.squeeze(state, axis=0), 
             action=np.squeeze(action, axis=0), 
@@ -143,6 +145,8 @@ class DDPGAgent(HiAgent):
             done_flag=done, 
             lo_state_seq=lo_state_seq, 
             lo_action_seq=lo_action_seq)
+        # ...
+        
 
         #sample a batch
         batch = self.replay_buffer.sample_batch()

@@ -76,8 +76,9 @@ class MetaAgent(BaseAgent):
             self.lo_agent = lo_agent_cls.new_trainable_agent(
                 state_space=self.lo_state_space, 
                 action_space=action_space, 
-                epslon_greedy=0.7,
-                exploration_decay = 0.99999)
+                epslon_greedy=1.0,
+                exploration_decay = 0.99999,
+                use_ou_noise=True)
         else:
             self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=self.hi_action_space)
@@ -105,6 +106,10 @@ class MetaAgent(BaseAgent):
                               difference)
         
         normalized_differences = difference / (self.hi_action_space.high - self.hi_action_space.low)
+        
+        normalized_differences[0, 1] = 0
+        normalized_differences[0, 3] = 0
+        
         final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) ** 2
         
         return final_reward
@@ -116,7 +121,7 @@ class MetaAgent(BaseAgent):
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state, explore, rough_explore=False) #this will be in (-1
+            self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1
             self.goal = self.hi_agent.scale_action(self.hi_action)
 
             # save for later training
@@ -126,7 +131,7 @@ class MetaAgent(BaseAgent):
 
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
-        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore, rough_explore=True)
+        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
         
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action
@@ -141,7 +146,7 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state) - 10*done
+        lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state) # - 10*done
 
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
