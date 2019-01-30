@@ -199,6 +199,9 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                                                         "lo_expl": agent.lo_agent.epslon_greedy,
                                                         })
 
+        if ep % 100 == 0:
+            agent.save_model(saved_models_dir)
+            
     #print time statistics 
     time_end = time.time()
     elapsed = time_end - time_begin
