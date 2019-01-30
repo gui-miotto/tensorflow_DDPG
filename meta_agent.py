@@ -16,7 +16,7 @@ class MetaAgent(BaseAgent):
                  hi_agent_cls=HiAgent,
                  lo_agent_cls=BaseAgent,
                  models_dir=None,
-                 c=100):
+                 c=40):
         # note, this will not work if initialised with
         # default parameters!
         # high- and lo_agent need to be explicitly set
@@ -108,9 +108,6 @@ class MetaAgent(BaseAgent):
         
         normalized_differences = difference / (self.hi_action_space.high - self.hi_action_space.low)
         
-        normalized_differences[0, 1] = 0
-        normalized_differences[0, 3] = 0
-        
         final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) ** 2
         
         return final_reward
@@ -166,7 +163,7 @@ class MetaAgent(BaseAgent):
         # is it time to train the HL agent?
         hi_loss = None
         if self.t % self.c == 0:
-            hi_loss = self.hi_agent.train(
+            hi_loss, _ = self.hi_agent.train(
                 state=self.hi_state,
                 action=self.hi_action, #(-1, 1)
                 reward=self.hi_rewards,
@@ -180,7 +177,7 @@ class MetaAgent(BaseAgent):
             # reset this
             self.hi_rewards = 0
 
-        return lo_loss, hi_loss, self.lo_reward
+        return lo_loss, hi_loss
 
 
     def save_model(self, filepath:str):

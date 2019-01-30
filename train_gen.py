@@ -14,9 +14,6 @@ def ensure_path(p):
     if not os.path.exists(p):
         os.mkdir(p)
 
-def add_batch_to_state(state):
-    return np.expand_dims(state, axis=0)
-
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
     # load agent
@@ -35,7 +32,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
 
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
-        state = add_batch_to_state(env.reset())
+        state = env.reset()
 
         goal_state = np.squeeze(state)
 
@@ -55,7 +52,6 @@ def test_agent(n_episodes: int=10, render: bool=True):
                 goal_state = np.squeeze(agent.goal)
             
             state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            state = add_batch_to_state(state)
 
             steps += 1
             score += reward
@@ -85,7 +81,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         state_space=env.observation_space,
         action_space = env.action_space)
     else:
-        agent = MetaAgent(env.observation_space, env.action_space, hi_agent=DDPGAgent, lo_agent=DDPGAgent)
+        agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DDPGAgent, lo_agent_cls=DDPGAgent)
 
 
     total_steps, ep = 0, 0
@@ -93,7 +89,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
 
     while ep < n_episodes:
         steps, hi_steps, score, lo_score, done, lo_loss_sum, hi_loss_sum = 0, 0, 0, 0, False, 0, 0
-        state = add_batch_to_state(env.reset())
+        state = env.reset()
         if HIERARCHY:
             agent.reset_clock()
 
@@ -116,8 +112,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                 goal_state = np.squeeze(agent.goal)
 
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            next_state = add_batch_to_state(next_state)
-
+            
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
             # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
