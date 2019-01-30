@@ -53,11 +53,12 @@ class MetaAgent(BaseAgent):
             # high level agent's actions will be states, i.e. goals for the LL agent
             self.hi_agent = hi_agent.new_trainable_agent(
                 state_space=state_space, action_space=self.hi_action_space, use_long_buffer=True,
-                epslon_greedy=0.4, exploration_decay = 0.999)
+                epslon_greedy=0.6, exploration_decay = 0.9999)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent.new_trainable_agent(
-                state_space=self.lo_state_space, action_space=action_space, epslon_greedy=0.7)
+                state_space=self.lo_state_space, action_space=action_space, epslon_greedy=0.7,
+                exploration_decay = 0.99999)
         else:
             self.hi_agent = hi_agent.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=self.hi_action_space)

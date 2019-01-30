@@ -122,6 +122,8 @@ class DDPGAgent(HiAgent):
                 action = (np.random.rand(*(action.shape)) * 2) - 1.
             self.epslon_greedy = self.epslon_greedy * self.explr_decay if self.epslon_greedy > 0.05 else 0.05
 
+        action = np.clip(action, a_min=-1, a_max=1)
+
         assert not np.isnan(action).any() # todo remove?
         return action 
         

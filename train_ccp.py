@@ -150,5 +150,5 @@ if __name__ == "__main__":
 
 
 
-    train_agent(n_episodes=30, render=False)
+    train_agent(n_episodes=1000, render=False)
     #test_agent()
