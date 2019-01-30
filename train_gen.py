@@ -1,15 +1,14 @@
 import select, sys, gym, os, time
 from datetime import timedelta
 import numpy as np
+import argparse
+
 from continuous_cartpole import ContinuousCartPoleEnv
+from bipedal_walker import BipedalWalker
+
 from ddpg_agent.ddpg_agent import DDPGAgent
 from meta_agent import MetaAgent
 from tensorboard_evaluation import Evaluation
-
-NAME = 'agent'
-COMPLEXENV = False # not implemented yet!
-HIERARCHY = True
-# TODO: make these args
 
 def ensure_path(p):
     if not os.path.exists(p):
@@ -19,7 +18,7 @@ def add_batch_to_state(state):
     return np.expand_dims(state, axis=0)
 
 def test_agent(n_episodes: int=10, render: bool=True):
-    env = ContinuousCartPoleEnv()
+    env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
     # load agent
     if not HIERARCHY:
         agent = DDPGAgent.load_pretrained_agent(
@@ -66,7 +65,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
 
 
 def train_agent(n_episodes: int=1000, render: bool=True):
-    env = ContinuousCartPoleEnv()
+    env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
     tensorboard_path = os.path.join(".", "tensorboard")
     ensure_path(tensorboard_path)
     tensorboard_path = os.path.join(tensorboard_path, NAME)
@@ -174,7 +173,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         total_steps += steps
 
         if not HIERARCHY:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
                 + f'loss: {lo_loss_sum:.3f}, '
                 + f'expl: {agent.epslon_greedy:6f}'
                 )
@@ -185,7 +184,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                                                         })
 
         else:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4d}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
                 + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}, '
@@ -210,9 +209,42 @@ def train_agent(n_episodes: int=1000, render: bool=True):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--name",
+        default="default",
+        type=str,
+        help="(directory name under ./racecar/ of trained model to retrieve (or ALL)"
+    )
+    parser.add_argument(
+        "--eps",
+        default=3,
+        type=int,
+        help="number of episodes to train for"
+    )
+    parser.add_argument("--hier", action="store_true", default=False, help="Run Hierarchical (rather than DDPG)")
+    parser.add_argument("--walker", action="store_true", default=False, help="Run Bipedal Walker (rather than CCP)")
+    parser.add_argument("--render", action="store_true", default=False, help="show window")
+    args = parser.parse_args()
+
     # global settings
-    saved_models_dir = './saved_models'
+    NAME = args.name
+    COMPLEXENV = args.walker
+    HIERARCHY = args.hier
+    RENDER = args.render
+
+    print(args)
+    #override here for ease of testing
+    # COMPLEXENV = True
+    # HIERARCHY = True
+    # RENDER = True
+
+    saved_models_dir = os.path.join('.','saved_models')
+    ensure_path(saved_models_dir)
+    saved_models_dir = os.path.join(saved_models_dir, NAME)
+    ensure_path(saved_models_dir)
+
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=3, render=True)
+    train_agent(n_episodes=args.eps, render=RENDER)
     test_agent()

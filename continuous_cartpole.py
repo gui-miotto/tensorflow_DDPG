@@ -238,12 +238,6 @@ class ContinuousCartPoleEnv(gym.Env):
             #goal_pole_vel_norm = goal_state[3] / max_pole_vel
             #(red, blue) = (1, 0) if goal_pole_vel_norm > 0 else (0,1)
             #self.pole_goal.set_color(red, 0, blue, abs(goal_pole_vel_norm))
-            
-
-
-
-
-
 
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
