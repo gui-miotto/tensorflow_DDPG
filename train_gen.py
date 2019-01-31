@@ -277,5 +277,5 @@ if __name__ == "__main__":
 
     max_steps_per_ep = 2000
 
-    #train_agent(n_episodes=args.eps, render=RENDER)
+    train_agent(n_episodes=args.eps, render=RENDER)
     test_agent()
