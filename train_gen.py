@@ -24,12 +24,20 @@ def test_agent(n_episodes: int=10, render: bool=True):
             state_space=env.observation_space,
             action_space = env.action_space)
     else:
+        if not COMPLEXENV:
+            hi_action_space = gym.spaces.Box(
+                low=[-2.4, -3, -np.pi, -10],
+                high=[2.4, 3, np.pi, 10],
+                dtype=state_space.dtype)
+        else:
+            hi_action_space = None
+
         agent = MetaAgent(
-            models_dir=saved_models_dir,
-            state_space=env.observation_space,
-            action_space = env.action_space, #TODO clipping
+            env.observation_space,
+            env.action_space,
             hi_agent_cls=DDPGAgent,
-            lo_agent_cls=DDPGAgent)
+            lo_agent_cls=DDPGAgent,
+            hi_action_space=hi_action_space)
 
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
@@ -46,12 +54,12 @@ def test_agent(n_episodes: int=10, render: bool=True):
                     env.render()
                 else:
                     env.render(goal_state=goal_state)
-            
+
             action = agent.act(state, explore=False)
-            
+
             if HIERARCHY:
                 goal_state = np.squeeze(state + agent.goal)
-            
+
             scaled_action = agent.scale_action(action)
             state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
@@ -86,7 +94,20 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         exploration_decay=0.99999
         )
     else:
-        agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DDPGAgent, lo_agent_cls=DDPGAgent)
+        if not COMPLEXENV:
+            hi_action_space = gym.spaces.Box(
+                low=np.array([-2.4, -3, -np.pi, -10]),
+                high=np.array([2.4, 3, np.pi, 10]),
+                dtype=env.observation_space.dtype)
+        else:
+            hi_action_space = None
+
+        agent = MetaAgent(
+            env.observation_space,
+            env.action_space,
+            hi_agent_cls=DDPGAgent,
+            lo_agent_cls=DDPGAgent,
+            hi_action_space=hi_action_space)
 
 
     total_steps, ep = 0, 0
@@ -174,7 +195,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         total_steps += steps
 
         if not HIERARCHY:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, '
                 + f'loss: {lo_loss_sum:.3f}, '
                 + f'expl: {agent.epslon_greedy:6f}'
                 )
@@ -185,7 +206,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                                                         })
 
         else:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, '
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
                 + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}, '
@@ -202,8 +223,8 @@ def train_agent(n_episodes: int=1000, render: bool=True):
 
         if ep % 100 == 0:
             agent.save_model(saved_models_dir)
-            
-    #print time statistics 
+
+    #print time statistics
     time_end = time.time()
     elapsed = time_end - time_begin
     print('\nElapsed time:', str(timedelta(seconds=elapsed)))

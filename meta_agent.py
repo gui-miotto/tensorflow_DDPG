@@ -16,7 +16,8 @@ class MetaAgent(BaseAgent):
                  hi_agent_cls=HiAgent,
                  lo_agent_cls=BaseAgent,
                  models_dir=None,
-                 c=40):
+                 c=40,
+                 hi_action_space=None):
         # note, this will not work if initialised with
         # default parameters!
         # high- and lo_agent need to be explicitly set
@@ -43,7 +44,11 @@ class MetaAgent(BaseAgent):
             high=np.concatenate([state_space.high, state_space.high]),
             dtype=state_space.dtype)
 
-        self.hi_action_space = deepcopy(state_space)
+        if hi_action_space is None:
+            self.hi_action_space = deepcopy(state_space)
+        else:
+            #clipping!
+            self.hi_action_space = hi_action_space            
 
         # figure out if any of the states are angles in (-pi, pi)
         # so that we can calculate distances between them properly in the intrinsic reward function
@@ -51,15 +56,6 @@ class MetaAgent(BaseAgent):
         self.state_space_angles = np.logical_and(
             np.isclose(state_space.high, np.pi),
             np.isclose(state_space.low, -np.pi))
-
-        # this is needed to deal with the unbounded state space for velocities
-        # so that we have something finite for the HL agent to set goals in.
-        self.hi_action_space.high = np.clip(
-            self.hi_action_space.high,
-            a_min=-10, a_max=10) # TODO - revisit for bipedalwalker?
-        self.hi_action_space.low = np.clip(
-            self.hi_action_space.low,
-            a_min=-10, a_max=10) #TODO obviously - maybe pass this as a parameter to MetaAgent
 
         if models_dir is None:
             # high level agent's actions will be states, i.e. goals for the LL agent
@@ -99,7 +95,7 @@ class MetaAgent(BaseAgent):
 
     @staticmethod
     def goal_transition(goal, state, next_state):
-        """
+        """`
         yup.
         """
         return state + goal - next_state
