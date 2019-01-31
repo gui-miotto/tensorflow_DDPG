@@ -11,6 +11,18 @@ from ddpg_agent.dummy_agent import DummyAgent
 from meta_agent import MetaAgent
 from tensorboard_evaluation import Evaluation
 
+# for CCP and bipedal respectively
+# calculated from inspection / sampling
+HI_ACTION_LIMITS = [[2.4, 3, np.pi, 10],
+                    [
+                        1.93463567, 0.184130755, 0.350053925, 0.32318072,
+                        1.025671095, 1.182890775, 1.236717375, 1.17722261, 0.5,
+                        0.78032851, 1.1053074, 1.21445441, 1.66797805, 0.5,
+                        0.203757265, 0.20607123, 0.21328325, 0.226284575,
+                        0.2468781, 0.27847528, 0.327789575, 0.40950387,
+                        0.388096935, 0.314850675
+                    ]]
+
 def ensure_path(p):
     if not os.path.exists(p):
         os.mkdir(p)
@@ -24,13 +36,10 @@ def test_agent(n_episodes: int=10, render: bool=True):
             state_space=env.observation_space,
             action_space = env.action_space)
     else:
-        if not COMPLEXENV:
-            hi_action_space = gym.spaces.Box(
-                low=[-2.4, -3, -np.pi, -10],
-                high=[2.4, 3, np.pi, 10],
-                dtype=state_space.dtype)
-        else:
-            hi_action_space = None
+        hi_action_space = gym.spaces.Box(
+            low=np.negative(np.array(HI_ACTION_LIMITS[COMPLEXENV])),
+            high=np.array(HI_ACTION_LIMITS[COMPLEXENV]),
+            dtype=env.observation_space.dtype)
 
         agent = MetaAgent(
             env.observation_space,
@@ -94,13 +103,10 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         exploration_decay=0.99999
         )
     else:
-        if not COMPLEXENV:
-            hi_action_space = gym.spaces.Box(
-                low=np.array([-2.4, -3, -np.pi, -10]),
-                high=np.array([2.4, 3, np.pi, 10]),
-                dtype=env.observation_space.dtype)
-        else:
-            hi_action_space = None
+        hi_action_space = gym.spaces.Box(
+            low=np.negative(np.array(HI_ACTION_LIMITS[COMPLEXENV])),
+            high=np.array(HI_ACTION_LIMITS[COMPLEXENV]),
+            dtype=env.observation_space.dtype)
 
         agent = MetaAgent(
             env.observation_space,
