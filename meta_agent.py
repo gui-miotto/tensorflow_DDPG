@@ -156,18 +156,23 @@ class MetaAgent(BaseAgent):
         # provide LL agent with intrinsic reward
         self.lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state) # - 10*done
 
+        # is it the end of a sub-episode?
+        # note, sequence is: lo.act(), t++, lo.train().
+        # so, if t % c == 0 now, lo.agent has just reached the end of the episode
+        # and in the next act() step will receive a new goal
+        # also: lo_agent should not know or care if it's the end of the real episode: 
+        # this is hi_agent's concern!
+        lo_done = (self.t % self.c == 0)
+
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
         # for off-policy training.
-        # note: if the hi-agent picks a new goal in the next step, then this line will not be quite right.
-        # but maybe it's actually better this way...
-
         lo_loss, _ = self.lo_agent.train(
             np.concatenate([state, self.goal], axis=1),
             action,
             self.lo_reward,
             np.concatenate([next_state, self.goal], axis=1),
-            done,
+            lo_done,
             relabel=False)
 
         # is it time to train the HL agent?
