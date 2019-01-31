@@ -17,6 +17,7 @@ def ensure_path(p):
 
 def test_agent(n_episodes: int=10, render: bool=True):
     env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
+    env.seed(np.random.randint(9999))
     # load agent
     if not HIERARCHY:
         agent = DDPGAgent.load_pretrained_agent(
@@ -61,8 +62,9 @@ def test_agent(n_episodes: int=10, render: bool=True):
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
 
 
-def train_agent(n_episodes: int=1000, render: bool=True):
+def train_agent(n_steps: int=500000, render: bool=True):
     env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
+    env.seed(np.random.randint(9999))
     tensorboard_path = os.path.join(".", "tensorboard")
     ensure_path(tensorboard_path)
     tensorboard_path = os.path.join(tensorboard_path, NAME)
@@ -91,7 +93,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
     total_steps, ep = 0, 0
     time_begin = time.time()
 
-    while ep < n_episodes:
+    while total_steps < n_steps:
         steps, hi_steps, score, lo_score, done, lo_loss_sum, hi_loss_sum = 0, 0, 0, 0, False, 0, 0
         state = env.reset()
         if HIERARCHY:
@@ -151,10 +153,10 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         return
                     # 'm' for more episodes
                     elif line == 'm':
-                        n_episodes += 100
+                        n_steps += 10000
                     # 'l' for less episodes
                     elif line == 'l':
-                        n_episodes -= 100
+                        n_steps -= 10000
                     # 'i' will increase the exploration factor
                     elif line == 'i':
                         agent.modify_exploration_magnitude(0.1, mode='increment')
@@ -172,9 +174,8 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         total_steps += steps
 
         if not HIERARCHY:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
-                + f'loss: {lo_loss_sum:.3f}, '
-                + f'expl: {agent.explr_magnitude:6f}'
+            print(f' Episode {ep:4d}. Steps: {steps:4d}, Score: {score:4f}, Loss: {lo_loss_sum:.3f},' 
+                + f' Expl: {agent.explr_magnitude:6f}, Global step: {total_steps} of {n_steps} ({(total_steps*100/n_steps):.2f}%)'
                 )
 
             tensorboard.write_episode_data(ep, eval_dict={"score": score,
@@ -219,10 +220,10 @@ if __name__ == "__main__":
         help="(directory name under ./racecar/ of trained model to retrieve (or ALL)"
     )
     parser.add_argument(
-        "--eps",
-        default=2000,
+        "--steps",
+        default=500000,
         type=int,
-        help="number of episodes to train for"
+        help="number of steps to train for"
     )
     parser.add_argument("--hier", action="store_true", default=True, help="Run Hierarchical (rather than DDPG)")
     parser.add_argument("--walker", action="store_true", default=False, help="Run Bipedal Walker (rather than CCP)")
@@ -248,5 +249,8 @@ if __name__ == "__main__":
 
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=args.eps, render=RENDER)
+    # Fixing seed for comparing features
+    np.random.seed(0)
+
+    train_agent(n_steps=args.steps, render=RENDER)
     test_agent()
