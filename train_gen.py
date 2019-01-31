@@ -50,9 +50,10 @@ def test_agent(n_episodes: int=10, render: bool=True):
             action = agent.act(state, explore=False)
             
             if HIERARCHY:
-                goal_state = np.squeeze(agent.goal)
+                goal_state = np.squeeze(state + agent.goal)
             
-            state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+            scaled_action = agent.scale_action(action)
+            state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
             steps += 1
             score += reward
@@ -113,10 +114,11 @@ def train_agent(n_episodes: int=1000, render: bool=True):
             action = agent.act(state, explore=True)
 
             if HIERARCHY:
-                goal_state = np.squeeze(agent.goal)
+                goal_state = np.squeeze(state + agent.goal)
 
-            next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            
+            scaled_action = agent.scale_action(action)
+            next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
+
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
             # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
@@ -238,8 +240,8 @@ if __name__ == "__main__":
     print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    # HIERARCHY = True
-    # RENDER = True
+    HIERARCHY = True
+    RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
