@@ -159,9 +159,10 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        self.lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state) # - 10*done
+        self.lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state)
 
         # now transition the goal in preparation for the next act() step
+        old_goal = self.goal
         self.goal = self.goal_transition(self.goal, state, next_state)
         # print("Transition: ", state, "g", goal, "s+g" state + goal)
         # is it the end of a sub-episode?
@@ -176,7 +177,7 @@ class MetaAgent(BaseAgent):
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
         # for off-policy training.
         lo_loss, _ = self.lo_agent.train(
-            np.concatenate([state, self.goal], axis=1),
+            np.concatenate([state, old_goal], axis=1),
             action,
             self.lo_reward,
             np.concatenate([next_state, self.goal], axis=1),
