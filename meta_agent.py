@@ -67,7 +67,7 @@ class MetaAgent(BaseAgent):
                 exploration_decay = 0.9999,
                 discount_factor=0.99,
                 n_units=[256, 128, 64],
-                weights_stdev=0.01,
+                weights_stdev=0.03,
                 )
 
             # low level agent's states will be (state, goal) concatenated
@@ -77,7 +77,7 @@ class MetaAgent(BaseAgent):
                 epslon_greedy=1.0,
                 exploration_decay = 0.99999,
                 use_ou_noise=True,
-                discount_factor=0.85,
+                discount_factor=0.99,
                 n_units=[128, 64],
                 weights_stdev=0.0001,
                 )
