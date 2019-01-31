@@ -47,7 +47,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
                 else:
                     env.render(goal_state=goal_state)
             
-            action = agent.act(state, explore=False)
+            action = agent.act(state, explr_mode="no_exploration")
             
             if HIERARCHY:
                 goal_state = np.squeeze(agent.goal)
@@ -81,7 +81,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space,
         action_space = env.action_space,
-        epslon_greedy=0.7,
+        exploration_magnitude=0.7,
         exploration_decay=0.99999
         )
     else:
@@ -110,7 +110,7 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                     env.render(goal_state=goal_state)
 
             steps += 1
-            action = agent.act(state, explore=True)
+            action = agent.act(state=state, explr_mode="rough_explore")
 
             if HIERARCHY:
                 goal_state = np.squeeze(agent.goal)
@@ -157,13 +157,13 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         n_episodes -= 100
                     # 'i' will increase the exploration factor
                     elif line == 'i':
-                        agent.modify_epslon_greedy(0.1, mode='increment')
+                        agent.modify_exploration_magnitude(0.1, mode='increment')
                     # 'd' will decrease the exploration factor
                     elif line == 'd':
-                        agent.modify_epslon_greedy(-0.1, mode='increment')
+                        agent.modify_exploration_magnitude(-0.1, mode='increment')
                     # 'z' will zero the exploration factor
                     elif line == 'z':
-                        agent.modify_epslon_greedy(0.0, mode='assign')
+                        agent.modify_exploration_magnitude(0.0, mode='assign')
                     # an empty line means stdin has been closed
                     else:
                         print('eof')
@@ -174,12 +174,12 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         if not HIERARCHY:
             print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
                 + f'loss: {lo_loss_sum:.3f}, '
-                + f'expl: {agent.epslon_greedy:6f}'
+                + f'expl: {agent.explr_magnitude:6f}'
                 )
 
             tensorboard.write_episode_data(ep, eval_dict={"score": score,
                                                         "loss": lo_loss_sum,
-                                                        "expl": agent.epslon_greedy
+                                                        "expl": agent.explr_magnitude
                                                         })
 
         else:
@@ -238,8 +238,8 @@ if __name__ == "__main__":
     print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    # HIERARCHY = True
-    # RENDER = True
+    HIERARCHY = False
+    RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)

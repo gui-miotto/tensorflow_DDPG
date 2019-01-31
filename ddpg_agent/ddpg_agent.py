@@ -21,9 +21,9 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        epslon_greedy=0.4, #TODO
+        exploration_magnitude=0.4,
+        exploration_magnitude_min=0.05,
         exploration_decay=0.9999,
-        use_ou_noise=False
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour
@@ -34,9 +34,9 @@ class DDPGAgent(HiAgent):
         self.train_actor_op = train_actor_op
         self.discount_factor = discount_factor
         self.tau = tau
-        self.epslon_greedy = epslon_greedy
+        self.explr_magnitude = exploration_magnitude
+        self.exploration_magnitude_min = exploration_magnitude_min
         self.explr_decay = exploration_decay
-        self.use_ou_noise = use_ou_noise
         self.ou_noise = OUNoise(self.action_space.shape[0])
 
     @classmethod
@@ -95,7 +95,7 @@ class DDPGAgent(HiAgent):
         act_targ.set_weights(act_behav.get_weights())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=80000,batch_size=batch_size, use_long=use_long_buffer)
+        replay_buffer = ReplayBuffer(buffer_size=20000,batch_size=batch_size, use_long=use_long_buffer)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
@@ -111,27 +111,36 @@ class DDPGAgent(HiAgent):
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
 
-    def act(self, state, explore=False):
+    def act(self, state, explr_mode="no_exploration"):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
-        if explore:
-            noise = self.ou_noise.noise()
-            action = (1-self.epslon_greedy)*action + noise * self.epslon_greedy
-            if self.epslon_greedy > 0.1:
-                self.epslon_greedy = self.epslon_greedy * self.explr_decay
+        if explr_mode != "no_exploration":
+            if explr_mode == "ou_noise":
+                noise = self.ou_noise.noise()
+                action = (1-self.explr_magnitude)*action + noise * self.explr_magnitude
+            elif explr_mode == "gaussian":
+                noise = np.random.normal(scale=self.explr_magnitude, size=action.shape)
+                action += noise
+            elif explr_mode == "rough_explore":
+                if np.random.rand() < self.explr_magnitude:
+                    action = 1 - 2 * np.random.randint(0, 2, size=action.shape)
+            else:
+                raise Exception('Invalid exploration method')
+            if self.explr_magnitude > self.exploration_magnitude_min:
+                self.explr_magnitude *= self.explr_decay
         
         action = np.clip(action, a_min=-1, a_max=1)
 
         assert not np.isnan(action).any()
         return action
 
-    def modify_epslon_greedy(self, factor, mode='increment'):
+    def modify_exploration_magnitude(self, factor, mode='increment'):
         if mode == 'increment':
-            self.epslon_greedy += factor
+            self.explr_magnitude += factor
         elif mode == 'assign':
-            self.epslon_greedy = factor
+            self.explr_magnitude = factor
         else:
             pass
 
