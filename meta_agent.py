@@ -70,15 +70,15 @@ class MetaAgent(BaseAgent):
                 state_space=state_space, 
                 action_space=self.hi_action_space, 
                 use_long_buffer=True,
-                epslon_greedy=0.6, 
-                exploration_decay = 0.9999)
+                epslon_greedy=1.0, 
+                exploration_decay = 0.99999)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent_cls.new_trainable_agent(
                 state_space=self.lo_state_space, 
                 action_space=action_space, 
                 epslon_greedy=1.0,
-                exploration_decay = 0.99999,
+                exploration_decay = 0.999999,
                 use_ou_noise=True)
         else:
             self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
@@ -111,6 +111,11 @@ class MetaAgent(BaseAgent):
         final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) ** 2
         
         return final_reward
+
+    def modify_epslon_greedy(self, factor, mode='increment'):
+        self.hi_agent.modify_epslon_greedy(factor=factor, mode=mode)
+        self.lo_agent.modify_epslon_greedy(factor=factor, mode=mode)
+
 
     def act(self, state, explore=False):
 

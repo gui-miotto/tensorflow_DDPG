@@ -118,12 +118,20 @@ class DDPGAgent(HiAgent):
             noise = self.ou_noise.noise()
             action = (1-self.epslon_greedy)*action + noise * self.epslon_greedy
             
-            self.epslon_greedy = self.epslon_greedy * self.explr_decay if self.epslon_greedy > 0.05 else 0.05
+            self.epslon_greedy = self.epslon_greedy * self.explr_decay if self.epslon_greedy > 0.2 else 0.2
         
         action = np.clip(action, a_min=-1, a_max=1)
 
         assert not np.isnan(action).any()
         return action
+
+    def modify_epslon_greedy(self, factor, mode='increment'):
+        if mode == 'increment':
+            self.epslon_greedy += factor
+        elif mode == 'assign':
+            self.epslon_greedy = factor
+        else:
+            pass
 
     def train(self,
               state,

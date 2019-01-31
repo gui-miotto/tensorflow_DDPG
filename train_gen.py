@@ -7,6 +7,7 @@ from continuous_cartpole import ContinuousCartPoleEnv
 from bipedal_walker import BipedalWalker
 
 from ddpg_agent.ddpg_agent import DDPGAgent
+from ddpg_agent.dummy_agent import DummyAgent
 from meta_agent import MetaAgent
 from tensorboard_evaluation import Evaluation
 
@@ -27,8 +28,8 @@ def test_agent(n_episodes: int=10, render: bool=True):
             models_dir=saved_models_dir,
             state_space=env.observation_space,
             action_space = env.action_space, #TODO clipping
-            hi_agent=DDPGAgent,
-            lo_agent=DDPGAgent)
+            hi_agent_cls=DDPGAgent,
+            lo_agent_cls=DDPGAgent)
 
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
@@ -79,7 +80,10 @@ def train_agent(n_episodes: int=1000, render: bool=True):
         # create new naive agent
         agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space,
-        action_space = env.action_space)
+        action_space = env.action_space,
+        epslon_greedy=0.7,
+        exploration_decay=0.99999
+        )
     else:
         agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DDPGAgent, lo_agent_cls=DDPGAgent)
 
@@ -153,13 +157,13 @@ def train_agent(n_episodes: int=1000, render: bool=True):
                         n_episodes -= 100
                     # 'i' will increase the exploration factor
                     elif line == 'i':
-                        agent.epslon_greedy += 0.1
+                        agent.modify_epslon_greedy(0.1, mode='increment')
                     # 'd' will decrease the exploration factor
                     elif line == 'd':
-                        agent.epslon_greedy -= 0.1
+                        agent.modify_epslon_greedy(-0.1, mode='increment')
                     # 'z' will zero the exploration factor
                     elif line == 'z':
-                        agent.epslon_greedy = 0.0
+                        agent.modify_epslon_greedy(0.0, mode='assign')
                     # an empty line means stdin has been closed
                     else:
                         print('eof')
@@ -216,11 +220,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--eps",
-        default=3,
+        default=2000,
         type=int,
         help="number of episodes to train for"
     )
-    parser.add_argument("--hier", action="store_true", default=False, help="Run Hierarchical (rather than DDPG)")
+    parser.add_argument("--hier", action="store_true", default=True, help="Run Hierarchical (rather than DDPG)")
     parser.add_argument("--walker", action="store_true", default=False, help="Run Bipedal Walker (rather than CCP)")
     parser.add_argument("--render", action="store_true", default=False, help="show window")
     args = parser.parse_args()
