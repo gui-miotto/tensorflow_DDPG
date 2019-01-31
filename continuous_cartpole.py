@@ -22,17 +22,14 @@ class ContinuousCartPoleEnv(gym.Env):
         self.tau = 0.02  # seconds between state updates
         self.kinematics_integrator = 'euler'
 
-        # Angle at which to fail the episode
-        # self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        # removed - this was only relevant when pole starts in 'up' position
-        self.theta_threshold_radians = math.pi / 2
         self.x_threshold = 2.4
+        self.world_width = 2.0 * self.x_threshold
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
         high = np.array([
-            self.x_threshold * 2,
+            self.world_width,
             np.finfo(np.float32).max,
-            self.theta_threshold_radians * 2,
+            math.pi,
             np.finfo(np.float32).max])
 
         self.action_space = spaces.Box(np.array([-1.0]), np.array([1.0]), dtype=np.float32)
@@ -93,11 +90,12 @@ class ContinuousCartPoleEnv(gym.Env):
         return np.expand_dims(self.state, axis=0)
 
     def render(self, mode='human', goal_state=None):
-        screen_width = 600
+        x_org = 100
+        track_width = 600
+        screen_width = track_width + 2 * x_org
         screen_height = 400
 
-        world_width = self.x_threshold*2
-        scale = screen_width/world_width
+        scale = track_width/self.world_width
         carty = 150 # TOP OF CART
         polewidth = 10.0
         polelen = scale * (2 * self.length)
@@ -113,7 +111,7 @@ class ContinuousCartPoleEnv(gym.Env):
             self.viewer = rendering.Viewer(screen_width, screen_height)
 
             # Track
-            self.track = rendering.Line((0,carty), (screen_width,carty))
+            self.track = rendering.Line((x_org,carty), (x_org+track_width,carty))
             self.track.set_color(0,0,0)
             self.viewer.add_geom(self.track)
 
@@ -130,7 +128,7 @@ class ContinuousCartPoleEnv(gym.Env):
             l,r,t,b = -polewidth/2,polewidth/2,polelen-polewidth/2,-polewidth/2
             pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
             pole.set_color(.8,.6,.4)
-            self.poletrans = rendering.Transform(translation=(0, axleoffset))
+            self.poletrans = rendering.Transform()
             pole.add_attr(self.poletrans)
             pole.add_attr(self.carttrans)
             self.viewer.add_geom(pole)

@@ -38,9 +38,6 @@ class MetaAgent(BaseAgent):
         self.lo_action_seq = np.empty((c, *action_space.shape))
         self.lo_state_seq = np.empty((c, *state_space.shape))
 
-        # self.lo_state_space = deepcopy(state_space)
-        # self.lo_state_space.shape = (2 * self.lo_state_space.shape[0],)
-        # CHANGED - this leads to an inconsistent box: .high and .low are still original shape
         self.lo_state_space = gym.spaces.Box(
             low=np.concatenate([state_space.low, state_space.low]),
             high=np.concatenate([state_space.high, state_space.high]),
@@ -71,15 +68,23 @@ class MetaAgent(BaseAgent):
                 action_space=self.hi_action_space, 
                 use_long_buffer=True,
                 epslon_greedy=1.0, 
-                exploration_decay = 0.99999)
+                exploration_decay = 0.9999,
+                discount_factor=0.99,
+                n_units=[256, 128, 64],
+                weights_stdev=0.01,
+                )
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent_cls.new_trainable_agent(
                 state_space=self.lo_state_space, 
                 action_space=action_space, 
                 epslon_greedy=1.0,
-                exploration_decay = 0.999999,
-                use_ou_noise=True)
+                exploration_decay = 0.99999,
+                use_ou_noise=True,
+                discount_factor=0.85,
+                n_units=[128, 64],
+                weights_stdev=0.0001,
+                )
         else:
             self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
                 state_space=state_space, action_space=self.hi_action_space)
@@ -103,12 +108,12 @@ class MetaAgent(BaseAgent):
         difference = np.abs(goal - next_state)
         # so that diff between np.pi, -np.pi = 0 for angles
         difference = np.where(self.state_space_angles,
-                              np.abs(((difference + np.pi) % (2 * np.pi)) - np.pi),
+                              ((difference + np.pi) % (2 * np.pi)) - np.pi,
                               difference)
         
-        normalized_differences = difference / (self.hi_action_space.high - self.hi_action_space.low)
+        normalized_differences = np.abs(difference) / (self.hi_action_space.high - self.hi_action_space.low)
         
-        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) ** 2
+        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) # ** 2 #removed the square. ask gui why
         
         return final_reward
 
