@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 from continuous_cartpole import ContinuousCartPoleEnv
-#from bipedal_walker import BipedalWalker
+from bipedal_walker import BipedalWalker
 
 from ddpg_agent.ddpg_agent import DDPGAgent
 from ddpg_agent.dummy_agent import DummyAgent
