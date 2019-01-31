@@ -247,7 +247,7 @@ if __name__ == "__main__":
         type=int,
         help="number of episodes to train for"
     )
-    parser.add_argument("--hier", action="store_true", default=True, help="Run Hierarchical (rather than DDPG)")
+    parser.add_argument("--hier", action="store_true", default=False, help="Run Hierarchical (rather than DDPG)")
     parser.add_argument("--walker", action="store_true", default=False, help="Run Bipedal Walker (rather than CCP)")
     parser.add_argument("--render", action="store_true", default=False, help="show window")
     args = parser.parse_args()
