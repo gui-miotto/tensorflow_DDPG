@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 from continuous_cartpole import ContinuousCartPoleEnv
-from bipedal_walker import BipedalWalker
+#from bipedal_walker import BipedalWalker
 
 from ddpg_agent.ddpg_agent import DDPGAgent
 from ddpg_agent.dummy_agent import DummyAgent
@@ -26,16 +26,16 @@ def test_agent(n_episodes: int=10, render: bool=True):
     else:
         if not COMPLEXENV:
             hi_action_space = gym.spaces.Box(
-                low=[-2.4, -3, -np.pi, -10],
-                high=[2.4, 3, np.pi, 10],
-                dtype=state_space.dtype)
+                low=np.array([-2.4, -3, -np.pi, -10]),
+                high=np.array([2.4, 3, np.pi, 10]),
+                dtype=env.observation_space.dtype)
         else:
             hi_action_space = None
 
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=DDPGAgent,
+            hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space)
 
@@ -258,12 +258,6 @@ if __name__ == "__main__":
     HIERARCHY = args.hier
     RENDER = args.render
 
-    print(args)
-    #override here for ease of testing
-    # COMPLEXENV = True
-    HIERARCHY = True
-    RENDER = True
-
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
     saved_models_dir = os.path.join(saved_models_dir, NAME)
@@ -271,5 +265,5 @@ if __name__ == "__main__":
 
     max_steps_per_ep = 2000
 
-    train_agent(n_episodes=args.eps, render=RENDER)
+    #train_agent(n_episodes=args.eps, render=RENDER)
     test_agent()
