@@ -255,7 +255,7 @@ if __name__ == "__main__":
         "--name",
         default="default",
         type=str,
-        help="(directory name under ./racecar/ of trained model to retrieve (or ALL)"
+        help="sets the folder name under which mode/tboard files will be saved"
     )
     parser.add_argument(
         "--steps",
