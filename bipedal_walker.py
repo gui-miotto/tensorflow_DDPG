@@ -372,7 +372,7 @@ class BipedalWalker(gym.Env, EzPickle):
                 return 0
         self.lidar = [LidarCallback() for _ in range(10)]
 
-        return self.step(np.array([0,0,0,0]))[0]
+        return self.step(np.array([0,0,0,0]))[0] # expand_dims already happens inside self.step
 
     def step(self, action):
         #self.hull.ApplyForceToCenter((0, 20), True) -- Uncomment this to receive a bit of stability help
@@ -444,7 +444,7 @@ class BipedalWalker(gym.Env, EzPickle):
             done   = True
         if pos[0] > (TERRAIN_LENGTH-TERRAIN_GRASS)*TERRAIN_STEP:
             done   = True
-        return np.array(state), reward, done, {}
+        return np.expand_dims(np.array(state), axis=0), reward, done, {} #added batch dimension
 
     def render(self, mode='human', goal_state=None):
         from gym.envs.classic_control import rendering

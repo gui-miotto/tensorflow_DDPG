@@ -150,7 +150,7 @@ class DDPGAgent(HiAgent):
               reward: float,
               next_state,
               done: bool,
-              relabel=False,
+              relabeller=None,
               lo_state_seq=None,
               lo_action_seq=None,
               lo_current_policy=None):
@@ -171,10 +171,11 @@ class DDPGAgent(HiAgent):
         batch = self.replay_buffer.sample_batch()
 
         # off policy correction / relabelling!
-        if relabel:
+        if relabeller is not None:
             for i in range(batch.actions.shape[0]): #TODO make r_g fn accept batches
-                batch.actions[i] = self.relabel_goal(
-                    original_goal=batch.actions[i],
+                batch.actions[i] = relabeller(
+                    orig_hi_action=batch.actions[i],
+                    goal_scaler=self.scale_action,
                     lo_state_seq=batch.lo_state_seqs[i], 
                     lo_action_seq=batch.lo_action_seqs[i],
                     lo_current_policy=lo_current_policy)
