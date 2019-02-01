@@ -124,7 +124,7 @@ class MetaAgent(BaseAgent):
     def act(self, state, explr_mode="no_exploration"):
 
         # is it time for a high-level action?
-        if (self.t+1) % self.c == 0:
+        if self.t % self.c == 0:
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
@@ -163,7 +163,7 @@ class MetaAgent(BaseAgent):
         # and in the next act() step will receive a new goal
         # also: lo_agent should not know or care if it's the end of the real episode: 
         # this is hi_agent's concern!
-        lo_done = (self.t+1 % self.c == 0)
+        lo_done = (self.t % self.c == 0)
 
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
