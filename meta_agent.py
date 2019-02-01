@@ -80,8 +80,7 @@ class MetaAgent(BaseAgent):
                 action_space=action_space, 
                 exploration_magnitude=1.0,
                 exploration_decay = 0.99999,
-                use_ou_noise=True,
-                discount_factor=0.85,
+                discount_factor=0.95,
                 n_units=[128, 64],
                 weights_stdev=0.0001,
                 )
@@ -122,14 +121,14 @@ class MetaAgent(BaseAgent):
         self.lo_agent.modify_exploration_magnitude(factor=factor, mode=mode)
 
 
-    def act(self, state, explore=False):
+    def act(self, state, explr_mode="no_exploration"):
 
         # is it time for a high-level action?
         if self.t % self.c == 0:
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state, explore) #this will be in (-1
+            self.hi_action = self.hi_agent.act(state, explr_mode) #this will be in (-1
             self.goal = self.hi_agent.scale_action(self.hi_action)
 
             # save for later training
@@ -139,7 +138,9 @@ class MetaAgent(BaseAgent):
 
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
-        lo_action = self.lo_agent.act(np.concatenate([state, goal_broadcast], axis=1), explore)
+        lo_action = self.lo_agent.act(
+            state=np.concatenate([state, goal_broadcast], axis=1), 
+            explr_mode=explr_mode)
         
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action

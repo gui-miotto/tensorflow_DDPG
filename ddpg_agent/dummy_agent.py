@@ -10,7 +10,7 @@ class DummyAgent(BaseAgent):
         **kwargs
         ):
         super().__init__(state_space, action_space)
-        self.epslon_greedy = 0
+        self.explr_magnitude = 0
 
     @classmethod
     def new_trainable_agent(cls, **kwargs) -> 'DummyAgent':

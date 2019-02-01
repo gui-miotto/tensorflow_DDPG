@@ -35,7 +35,7 @@ class DDPGAgent(HiAgent):
         self.discount_factor = discount_factor
         self.tau = tau
         self.explr_magnitude = exploration_magnitude
-        self.exploration_magnitude_min = exploration_magnitude_min
+        self.explr_magnitude_min = exploration_magnitude_min
         self.explr_decay = exploration_decay
         self.ou_noise = OUNoise(self.action_space.shape[0])
 
@@ -95,7 +95,7 @@ class DDPGAgent(HiAgent):
         act_targ.set_weights(act_behav.get_weights())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=10000,batch_size=batch_size, use_long=use_long_buffer)
+        replay_buffer = ReplayBuffer(buffer_size=20000,batch_size=batch_size, use_long=use_long_buffer)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
@@ -128,7 +128,7 @@ class DDPGAgent(HiAgent):
                     action = 1 - 2 * np.random.randint(0, 2, size=action.shape)
             else:
                 raise Exception('Invalid exploration method')
-            if self.explr_magnitude > self.exploration_magnitude_min:
+            if self.explr_magnitude > self.explr_magnitude_min:
                 self.explr_magnitude *= self.explr_decay
         
         action = np.clip(action, a_min=-1, a_max=1)
@@ -196,7 +196,7 @@ class DDPGAgent(HiAgent):
         session.run([self.train_actor_op], {
             # self.critic_behaviour.input: self.reshape_input(batch.states_before, behaviour_actions),
             # self.actor_behaviour.input: self.reshape_input(batch.states_before)
-            self.critic_behaviour.input: np.concatenate((batch.states_after, behaviour_actions), axis=1),
+            self.critic_behaviour.input: np.concatenate((batch.states_before, behaviour_actions), axis=1),
             self.actor_behaviour.input: batch.states_before
         })
 

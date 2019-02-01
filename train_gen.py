@@ -29,7 +29,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             models_dir=saved_models_dir,
             state_space=env.observation_space,
             action_space = env.action_space, #TODO clipping
-            hi_agent_cls=DDPGAgent,
+            hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent)
 
     for ep in range(n_episodes):
@@ -84,10 +84,12 @@ def train_agent(n_steps: int=500000, render: bool=True):
         state_space=env.observation_space,
         action_space = env.action_space,
         exploration_magnitude=2.,
-        exploration_decay=0.99999
+        exploration_decay=0.99999,
+        learning_rate_actor=0.001,
+        learning_rate_critic=0.001,
         )
     else:
-        agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DDPGAgent, lo_agent_cls=DDPGAgent)
+        agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DummyAgent, lo_agent_cls=DDPGAgent)
 
 
     total_steps, ep = 0, 0
@@ -175,29 +177,35 @@ def train_agent(n_steps: int=500000, render: bool=True):
 
         if not HIERARCHY:
             print(f' Episode {ep:4d}. Steps: {steps:4d}, Score: {score:4f}, Loss: {lo_loss_sum:.3f},' 
-                + f' Expl: {agent.explr_magnitude:6f}, Global step: {total_steps} of {n_steps} ({(total_steps*100/n_steps):.2f}%)'
+                + f' Expl: {agent.explr_magnitude:6f}, '
+                + f' Global step: {total_steps} of {n_steps} ({(total_steps*100/n_steps):.2f}%)'
                 )
-
-            tensorboard.write_episode_data(ep, eval_dict={"score": score,
-                                                        "loss": lo_loss_sum,
-                                                        "expl": agent.explr_magnitude
-                                                        })
+            tensorboard.write_episode_data(
+                ep, 
+                eval_dict={
+                    "score": score,
+                    "loss": lo_loss_sum,
+                    "expl": agent.explr_magnitude,
+                    })
 
         else:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d}, score: {score:4f}, steps: {steps:4d}, ' 
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
-                + f'lo_expl: {agent.lo_agent.epslon_greedy:6f}, '
-                + f'hi_expl: {agent.hi_agent.epslon_greedy:6f}'
+                + f'lo_expl: {agent.lo_agent.explr_magnitude:6f}, '
+                + f'hi_expl: {agent.hi_agent.explr_magnitude:6f}, '
+                + f'Global step: {total_steps} of {n_steps} ({(total_steps*100/n_steps):.2f}%)'
                 )
-
-            tensorboard.write_episode_data(ep, eval_dict={"hi_score": score,
-                                                        "hi_loss": hi_loss_sum,
-                                                        "hi_expl": agent.hi_agent.epslon_greedy,
-                                                        "lo_score": lo_score,
-                                                        "lo_loss": lo_loss_sum,
-                                                        "lo_expl": agent.lo_agent.epslon_greedy,
-                                                        })
+            tensorboard.write_episode_data(
+                ep, 
+                eval_dict={
+                    "hi_score": score,
+                    "hi_loss": hi_loss_sum,
+                    "hi_expl": agent.hi_agent.explr_magnitude,
+                    "lo_score": lo_score,
+                    "lo_loss": lo_loss_sum,
+                    "lo_expl": agent.lo_agent.explr_magnitude,
+                    })
 
         if ep % 100 == 0:
             agent.save_model(saved_models_dir)
@@ -239,8 +247,8 @@ if __name__ == "__main__":
     print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    HIERARCHY = False
-    RENDER = True
+    HIERARCHY = True
+    RENDER = False
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
