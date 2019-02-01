@@ -73,8 +73,12 @@ def test_agent(n_episodes: int=10, render: bool=True):
                 goal_state = np.squeeze(state + agent.goal)
 
             scaled_action = agent.scale_action(action)
-            state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
+            next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
+            if HIERARCHY:
+                agent.goal = agent.goal_transition(agent.goal, state, next_state)
+
+            state = next_state
             steps += 1
             score += reward
             if done:
@@ -173,6 +177,9 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
             lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
             # this is the single loss if DDPG, or the lo_loss if hierarchical
             lo_loss_sum += (1 / steps) * (lo_loss - lo_loss_sum) # avoids need to divide by num steps at end
+
+            if HIERARCHY:
+                agent.goal = agent.goal_transition(agent.goal, state, next_state)
 
             if hi_loss is not None:
                 hi_steps += 1
