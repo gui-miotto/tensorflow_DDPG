@@ -11,6 +11,18 @@ from ddpg_agent.dummy_agent import DummyAgent
 from meta_agent import MetaAgent
 from tensorboard_evaluation import Evaluation
 
+# for CCP and bipedal respectively
+# calculated from inspection / sampling
+HI_ACTION_LIMITS = [[2.4, 3, np.pi, 10],
+                    [
+                        1.93463567, 0.184130755, 0.350053925, 0.32318072,
+                        1.025671095, 1.182890775, 1.236717375, 1.17722261, 0.5,
+                        0.78032851, 1.1053074, 1.21445441, 1.66797805, 0.5,
+                        0.203757265, 0.20607123, 0.21328325, 0.226284575,
+                        0.2468781, 0.27847528, 0.327789575, 0.40950387,
+                        0.388096935, 0.314850675
+                    ]]
+
 def ensure_path(p):
     if not os.path.exists(p):
         os.mkdir(p)
@@ -25,12 +37,18 @@ def test_agent(n_episodes: int=10, render: bool=True):
             state_space=env.observation_space,
             action_space = env.action_space)
     else:
+        hi_action_space = gym.spaces.Box(
+            low=np.negative(np.array(HI_ACTION_LIMITS[COMPLEXENV])),
+            high=np.array(HI_ACTION_LIMITS[COMPLEXENV]),
+            dtype=env.observation_space.dtype)
+
         agent = MetaAgent(
-            models_dir=saved_models_dir,
             state_space=env.observation_space,
-            action_space = env.action_space, #TODO clipping
-            hi_agent_cls=DummyAgent,
-            lo_agent_cls=DDPGAgent)
+            action_space=env.action_space,
+            hi_agent_cls=DDPGAgent,
+            lo_agent_cls=DDPGAgent,
+            hi_action_space=hi_action_space,
+            )
 
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
@@ -51,9 +69,10 @@ def test_agent(n_episodes: int=10, render: bool=True):
             action = agent.act(state, explr_mode="no_exploration")
             
             if HIERARCHY:
-                goal_state = np.squeeze(agent.goal)
-            
-            state, reward, done, _ = env.step(np.squeeze(action, axis=0))
+                goal_state = np.squeeze(state + agent.goal)
+
+            scaled_action = agent.scale_action(action)
+            state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
             steps += 1
             score += reward
@@ -89,7 +108,17 @@ def train_agent(n_steps: int=500000, render: bool=True):
         learning_rate_critic=0.001,
         )
     else:
-        agent = MetaAgent(env.observation_space, env.action_space, hi_agent_cls=DummyAgent, lo_agent_cls=DDPGAgent)
+        hi_action_space = gym.spaces.Box(
+            low=np.negative(np.array(HI_ACTION_LIMITS[COMPLEXENV])),
+            high=np.array(HI_ACTION_LIMITS[COMPLEXENV]),
+            dtype=env.observation_space.dtype)
+
+        agent = MetaAgent(
+            env.observation_space,
+            env.action_space,
+            hi_agent_cls=DDPGAgent,
+            lo_agent_cls=DDPGAgent,
+            hi_action_space=hi_action_space)
 
 
     total_steps, ep = 0, 0
@@ -117,10 +146,11 @@ def train_agent(n_steps: int=500000, render: bool=True):
             action = agent.act(state=state, explr_mode="gaussian")
 
             if HIERARCHY:
-                goal_state = np.squeeze(agent.goal)
+                goal_state = np.squeeze(state + agent.goal)
 
-            next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
-            
+            scaled_action = agent.scale_action(action)
+            next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
+
             # reward shaping ;-)
             # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
             # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
@@ -189,7 +219,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
                     })
 
         else:
-            print(f'Episode {ep:4d}, score: {score:4f}, steps: {steps:4d}, ' 
+            print(f'Episode {ep:4d}, score: {score:4f}, steps: {steps:4d}, '
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
                 + f'lo_expl: {agent.lo_agent.explr_magnitude:6f}, '
@@ -209,8 +239,8 @@ def train_agent(n_steps: int=500000, render: bool=True):
 
         if ep % 100 == 0:
             agent.save_model(saved_models_dir)
-            
-    #print time statistics 
+
+    #print time statistics
     time_end = time.time()
     elapsed = time_end - time_begin
     print('\nElapsed time:', str(timedelta(seconds=elapsed)))
@@ -225,7 +255,7 @@ if __name__ == "__main__":
         "--name",
         default="default",
         type=str,
-        help="(directory name under ./racecar/ of trained model to retrieve (or ALL)"
+        help="sets the folder name under which mode/tboard files will be saved"
     )
     parser.add_argument(
         "--steps",
@@ -233,7 +263,7 @@ if __name__ == "__main__":
         type=int,
         help="number of steps to train for"
     )
-    parser.add_argument("--hier", action="store_true", default=True, help="Run Hierarchical (rather than DDPG)")
+    parser.add_argument("--hier", action="store_true", default=False, help="Run Hierarchical (rather than DDPG)")
     parser.add_argument("--walker", action="store_true", default=False, help="Run Bipedal Walker (rather than CCP)")
     parser.add_argument("--render", action="store_true", default=False, help="show window")
     args = parser.parse_args()
@@ -244,11 +274,11 @@ if __name__ == "__main__":
     HIERARCHY = args.hier
     RENDER = args.render
 
-    print(args)
+    # print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    HIERARCHY = True
-    RENDER = False
+    # HIERARCHY = True
+    # RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
@@ -260,5 +290,6 @@ if __name__ == "__main__":
     # Fixing seed for comparing features
     np.random.seed(0)
 
+    # train_agent(n_steps=1000, render=RENDER)
     train_agent(n_steps=args.steps, render=RENDER)
     test_agent()
