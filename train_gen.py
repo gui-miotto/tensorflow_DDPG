@@ -219,7 +219,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
                     })
 
         else:
-            print(f'Episode {ep:4d} of {n_episodes}, score: {score:4f}, steps: {steps:4d}, '
+            print(f'Episode {ep:4d}, score: {score:4f}, steps: {steps:4d}, '
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
                 + f'lo_expl: {agent.lo_agent.explr_magnitude:6f}, '
@@ -277,8 +277,8 @@ if __name__ == "__main__":
     # print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    HIERARCHY = True
-    RENDER = False
+    # HIERARCHY = True
+    # RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
@@ -290,5 +290,6 @@ if __name__ == "__main__":
     # Fixing seed for comparing features
     np.random.seed(0)
 
+    # train_agent(n_steps=1000, render=RENDER)
     train_agent(n_steps=args.steps, render=RENDER)
     test_agent()
