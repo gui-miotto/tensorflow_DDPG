@@ -83,7 +83,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
         agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space,
         action_space = env.action_space,
-        exploration_magnitude=0.7,
+        exploration_magnitude=2.,
         exploration_decay=0.99999
         )
     else:
@@ -112,7 +112,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
                     env.render(goal_state=goal_state)
 
             steps += 1
-            action = agent.act(state=state, explr_mode="rough_explore")
+            action = agent.act(state=state, explr_mode="gaussian")
 
             if HIERARCHY:
                 goal_state = np.squeeze(agent.goal)
@@ -153,10 +153,10 @@ def train_agent(n_steps: int=500000, render: bool=True):
                         return
                     # 'm' for more episodes
                     elif line == 'm':
-                        n_steps += 10000
+                        n_steps += 50000
                     # 'l' for less episodes
                     elif line == 'l':
-                        n_steps -= 10000
+                        n_steps -= 50000
                     # 'i' will increase the exploration factor
                     elif line == 'i':
                         agent.modify_exploration_magnitude(0.1, mode='increment')
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--steps",
-        default=500000,
+        default=1000000,
         type=int,
         help="number of steps to train for"
     )

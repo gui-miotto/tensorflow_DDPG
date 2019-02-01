@@ -95,7 +95,7 @@ class DDPGAgent(HiAgent):
         act_targ.set_weights(act_behav.get_weights())
 
         # Create replay buffer
-        replay_buffer = ReplayBuffer(buffer_size=20000,batch_size=batch_size, use_long=use_long_buffer)
+        replay_buffer = ReplayBuffer(buffer_size=10000,batch_size=batch_size, use_long=use_long_buffer)
 
         return DDPGAgent(actor_behaviour=act_behav, actor_target=act_targ, 
             critic_behaviour=crit_behav, critic_target=crit_targ, replay_buffer=replay_buffer,
