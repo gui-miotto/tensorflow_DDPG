@@ -1,5 +1,4 @@
-import select, sys, gym, os, time
-from datetime import timedelta
+import select, sys, gym, os
 import numpy as np
 import argparse
 
@@ -50,6 +49,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             hi_action_space=hi_action_space,
             )
 
+    all_scores = []
     for ep in range(n_episodes):
         score, steps, done = 0, 0, False
         state = env.reset()
@@ -59,7 +59,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
         if HIERARCHY:
             agent.reset_clock()
 
-        for steps in range(max_steps_per_ep):
+        for steps in range(MAX_STEPS_PER_EP):
             if render:
                 if not HIERARCHY:
                     env.render()
@@ -78,16 +78,33 @@ def test_agent(n_episodes: int=10, render: bool=True):
             score += reward
             if done:
                 break
+        
+        all_scores.append(score)
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
+    
+    return np.array(all_scores)
+
+def isSolved(n_episodes=100, min_score=1800):
+    all_scores = test_agent(n_episodes=n_episodes, render=False)
+    average_score = np.mean(all_scores)
+    results = all_scores > min_score
+    solved = np.all(results)
+    failures = n_episodes - np.sum(results)
+    neg = 'not' if solved else ''
+    print (f'\nProblem {neg} solved.')
+    print (f'Mean score over {n_episodes} episodes: {average_score}')
+    print (f'Failed episodes: {failures}')
+    return solved
 
 
-def train_agent(n_steps: int=500000, render: bool=True):
+def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
     env = ContinuousCartPoleEnv() if not COMPLEXENV else BipedalWalker()
     env.seed(np.random.randint(9999))
     tensorboard_path = os.path.join(".", "tensorboard")
     ensure_path(tensorboard_path)
     tensorboard_path = os.path.join(tensorboard_path, NAME)
     ensure_path(tensorboard_path)
+    solved_score = 1800 if not COMPLEXENV else 42 # TODO: more suitable value than 42
 
     # we need to create the Tensorboard network BEFORE the agent, otherwise it gets angry
     # this could be done better, but oh well.
@@ -120,9 +137,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space)
 
-
     total_steps, ep = 0, 0
-    time_begin = time.time()
 
     while total_steps < n_steps:
         steps, hi_steps, score, lo_score, done, lo_loss_sum, hi_loss_sum = 0, 0, 0, 0, False, 0, 0
@@ -135,7 +150,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
         if HIERARCHY:
             goal_state = np.squeeze(state)
 
-        while not done and steps < max_steps_per_ep:
+        while not done and steps < MAX_STEPS_PER_EP:
             if render:
                 if not HIERARCHY:
                     env.render()
@@ -151,11 +166,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
             scaled_action = agent.scale_action(action)
             next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
 
-            # reward shaping ;-)
-            # reward_shaping = np.abs(next_state[2]-np.pi)/np.pi/10
-            # new_reward = reward_shaping if reward == 1 else reward+reward_shaping
-
-            if steps >= max_steps_per_ep:
+            if steps >= MAX_STEPS_PER_EP:
                 reward -= 1
 
             lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
@@ -200,8 +211,7 @@ def train_agent(n_steps: int=500000, render: bool=True):
                         agent.modify_exploration_magnitude(0.0, mode='assign')
                     # an empty line means stdin has been closed
                     else:
-                        print('eof')
-                        #exit(0)
+                        print('unknown command')
 
         total_steps += steps
 
@@ -217,9 +227,9 @@ def train_agent(n_steps: int=500000, render: bool=True):
                     "loss": lo_loss_sum,
                     "expl": agent.explr_magnitude,
                     })
-
         else:
-            print(f'Episode {ep:4d}, score: {score:4f}, steps: {steps:4d}, '
+            print(f'Episode {ep:4d}, score: {score:4f}, lo_score:{lo_score} '
+                + f'steps: {steps:4d}, '
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
                 + f'lo_expl: {agent.lo_agent.explr_magnitude:6f}, '
@@ -236,15 +246,17 @@ def train_agent(n_steps: int=500000, render: bool=True):
                     "lo_loss": lo_loss_sum,
                     "lo_expl": agent.lo_agent.explr_magnitude,
                     })
-
+        
         if ep % 100 == 0:
             agent.save_model(saved_models_dir)
 
-    #print time statistics
-    time_end = time.time()
-    elapsed = time_end - time_begin
-    print('\nElapsed time:', str(timedelta(seconds=elapsed)))
-    print(f'Steps per second: {(total_steps / elapsed):.3f}\n')
+        #Early stop test
+        if early_stop and score > 0.8 * solved_score:
+            print(f'\n\n The agent reached a score of {score} while training. It is now eligible for an early stop test.')
+            print('Initiating tests...')
+            agent.save_model(saved_models_dir)
+            if isSolved(min_score=solved_score):
+                return
 
     agent.save_model(saved_models_dir)
 
@@ -273,6 +285,7 @@ if __name__ == "__main__":
     COMPLEXENV = args.walker
     HIERARCHY = args.hier
     RENDER = args.render
+    MAX_STEPS_PER_EP = 2000
 
     # print(args)
     #override here for ease of testing
@@ -285,11 +298,8 @@ if __name__ == "__main__":
     saved_models_dir = os.path.join(saved_models_dir, NAME)
     ensure_path(saved_models_dir)
 
-    max_steps_per_ep = 2000
-
     # Fixing seed for comparing features
     np.random.seed(0)
 
-    # train_agent(n_steps=1000, render=RENDER)
     train_agent(n_steps=args.steps, render=RENDER)
     test_agent()
