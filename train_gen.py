@@ -95,8 +95,8 @@ def isSolved(n_episodes=100, min_score=1800):
     results = all_scores > min_score
     solved = np.all(results)
     failures = n_episodes - np.sum(results)
-    neg = 'not' if solved else ''
-    print (f'\nProblem {neg} solved.')
+    neg = 'not ' if not solved else ' '
+    print (f'\nProblem{neg}solved.')
     print (f'Mean score over {n_episodes} episodes: {average_score}')
     print (f'Failed episodes: {failures}')
     return solved
