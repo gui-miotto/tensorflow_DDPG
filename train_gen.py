@@ -12,7 +12,7 @@ from tensorboard_evaluation import Evaluation
 
 # for CCP and bipedal respectively
 # calculated from inspection / sampling
-HI_ACTION_LIMITS = [[2.4, 3, np.pi, 10],
+HI_ACTION_LIMITS = [[1.2, 3, np.pi, 10],
                     [
                         1.93463567, 0.184130755, 0.350053925, 0.32318072,
                         1.025671095, 1.182890775, 1.236717375, 1.17722261, 0.5,
@@ -138,7 +138,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=DDPGAgent,
+            hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space)
 
@@ -236,7 +236,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
                     "expl": agent.explr_magnitude,
                     })
         else:
-            print(f'Episode {ep:4d}, score: {score:4f}, lo_score:{lo_score} '
+            print(f'Episode {ep:4d}, score: {score:.1f}, lo_score: {lo_score:.2f} '
                 + f'steps: {steps:4d}, '
                 + f'lo_loss: {lo_loss_sum:.3f}, '
                 + f'hi_loss: {hi_loss_sum:.3f}, '
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     # print(args)
     #override here for ease of testing
     # COMPLEXENV = True
-    # HIERARCHY = True
+    HIERARCHY = True
     # RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
