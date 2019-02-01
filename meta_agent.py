@@ -105,7 +105,6 @@ class MetaAgent(BaseAgent):
 
         difference: here we define goal as a state, not an increment (todo? does it matter?)
         note: action does not figure in the formula - this is apparently deliberate
-        todo - make this a customisable function?
         """
         # difference = np.abs(goal - next_state)
         difference = np.abs(state + goal - next_state) #now an increment

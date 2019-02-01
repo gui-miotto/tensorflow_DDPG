@@ -43,6 +43,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             dtype=env.observation_space.dtype)
 
         agent = MetaAgent(
+            models_dir=saved_models_dir,
             state_space=env.observation_space,
             action_space=env.action_space,
             hi_agent_cls=DDPGAgent,
@@ -290,6 +291,6 @@ if __name__ == "__main__":
     # Fixing seed for comparing features
     np.random.seed(0)
 
-    # train_agent(n_steps=1000, render=RENDER)
+    # train_agent(n_steps=100, render=RENDER)
     train_agent(n_steps=args.steps, render=RENDER)
     test_agent()
