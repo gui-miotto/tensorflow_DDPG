@@ -62,13 +62,13 @@ def test_agent(n_episodes: int=10, render: bool=True):
             agent.reset_clock()
 
         for steps in range(MAX_STEPS_PER_EP):
+            action = agent.act(state, explr_mode="no_exploration")
+
             if render:
                 if not HIERARCHY:
                     env.render()
                 else:
                     env.render(goal_state=goal_state)
-            
-            action = agent.act(state, explr_mode="no_exploration")
             
             if HIERARCHY:
                 goal_state = np.squeeze(state + agent.goal)
@@ -78,7 +78,6 @@ def test_agent(n_episodes: int=10, render: bool=True):
 
             if HIERARCHY:
                 agent.goal = agent.goal_transition(agent.goal, state, next_state)
-
 
             state = next_state
             steps += 1
@@ -140,10 +139,9 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=DummyAgent,
+            hi_agent_cls=TeacherAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
-            #c=1,
             c=1,
             #c=n_steps,
             )
@@ -158,21 +156,18 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
 
         ep += 1
 
-        if HIERARCHY:
-            goal_state = np.squeeze(state)
-
         while not done and steps < MAX_STEPS_PER_EP:
-            if render:
-                if not HIERARCHY:
-                    env.render()
-                else:
-                    env.render(goal_state=goal_state)
-
             steps += 1
             action = agent.act(state=state, explr_mode="gaussian")
 
             if HIERARCHY:
                 goal_state = np.squeeze(state + agent.goal)
+
+            if render:
+                if not HIERARCHY:
+                    env.render()
+                else:
+                    env.render(goal_state=goal_state)
 
             scaled_action = agent.scale_action(action)
             next_state, reward, done, _ = env.step(np.squeeze(scaled_action, axis=0))
@@ -314,7 +309,7 @@ if __name__ == "__main__":
     ensure_path(saved_models_dir)
 
     # Fixing seed for comparing features
-    # np.random.seed(0)
+    np.random.seed(0)
 
     train_agent(n_steps=args.steps, render=RENDER)
     #test_agent()
