@@ -16,7 +16,7 @@ class MetaAgent(BaseAgent):
                  hi_agent_cls=HiAgent,
                  lo_agent_cls=BaseAgent,
                  models_dir=None,
-                 c=1,
+                 c=40,
                  hi_action_space=None):
         # note, this will not work if initialised with
         # default parameters!
@@ -142,10 +142,13 @@ class MetaAgent(BaseAgent):
 
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
+        
         lo_action = self.lo_agent.act(
             state=np.concatenate([state, goal_broadcast], axis=1), 
             explr_mode=explr_mode)
         
+        # This is just useful for training, right? Should this be inside train()?
+        # No. Because we want the unscaled action. Is that it?
         self.lo_state_seq[self.t] = state
         self.lo_action_seq[self.t] = lo_action #unscaled - still tanh space. good!
 
@@ -173,16 +176,25 @@ class MetaAgent(BaseAgent):
         # also: lo_agent should not know or care if it's the end of the real episode:
         # this is hi_agent's concern!
         lo_done = (self.t % self.c == 0)
-
+        next_goal = self.goal_transition(self.goal, state, next_state)
         # The lower-level policy will store the experience
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
         # for off-policy training.
+
+        #if self.t % self.c != 0:
+        #    next_goal = self.goal_transition(self.goal, state, next_state)
+        #    lo_done = False
+        #else:
+        #    next_goal = self.hi_agent.act(next_state, "no_exploration") 
+        #    next_goal = self.hi_agent.scale_action(next_goal)
+        #    lo_done = True
+
         lo_loss, _ = self.lo_agent.train(
-            np.concatenate([state, self.goal], axis=1),
-            action,
-            self.lo_reward,
-            np.concatenate([next_state, self.goal_transition(self.goal, state, next_state)], axis=1),
-            lo_done)
+            state=np.concatenate([state, self.goal], axis=1),
+            action=action,
+            reward=self.lo_reward,
+            next_state=np.concatenate([next_state, next_goal], axis=1),
+            done=lo_done or done) # TODO remove this done?!
 
         # is it time to train the HL agent?
         hi_loss = None

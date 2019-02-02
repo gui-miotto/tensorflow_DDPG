@@ -45,7 +45,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             models_dir=saved_models_dir,
             state_space=env.observation_space,
             action_space=env.action_space,
-            hi_agent_cls=DDPGAgent,
+            hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
             )
@@ -77,6 +77,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
 
             if HIERARCHY:
                 agent.goal = agent.goal_transition(agent.goal, state, next_state)
+
 
             state = next_state
             steps += 1
@@ -140,7 +141,10 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
             env.action_space,
             hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent,
-            hi_action_space=hi_action_space)
+            hi_action_space=hi_action_space,
+            c=1,
+            #c=n_steps,
+            )
 
     total_steps, ep = 0, 0
 
@@ -299,7 +303,7 @@ if __name__ == "__main__":
     #override here for ease of testing
     # COMPLEXENV = True
     HIERARCHY = True
-    # RENDER = True
+    RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)

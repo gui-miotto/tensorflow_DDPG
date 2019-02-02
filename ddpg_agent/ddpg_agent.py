@@ -172,6 +172,8 @@ class DDPGAgent(HiAgent):
 
         # off policy correction / relabelling!
         if relabeller is not None:
+            test = batch.actions.shape[0]
+
             for i in range(batch.actions.shape[0]): #TODO make r_g fn accept batches
                 batch.actions[i] = relabeller(
                     orig_hi_action=batch.actions[i],
@@ -181,10 +183,8 @@ class DDPGAgent(HiAgent):
                     lo_current_policy=lo_current_policy)
 
         # ask actor target network for actions ...
-        # target_actions = self.actor_target.predict(self.reshape_input(batch.states_after))
         target_actions = self.actor_target.predict(batch.states_after)
         # ask critic target for values of these actions
-        # values = self.critic_target.predict(self.reshape_input(batch.states_after, target_actions))
         values = self.critic_target.predict(np.concatenate((batch.states_after, target_actions), axis=1))
         # train critic
         ys = batch.rewards.reshape((-1, 1)) + self.discount_factor * values * ~(batch.done_flags.reshape((-1, 1)))
