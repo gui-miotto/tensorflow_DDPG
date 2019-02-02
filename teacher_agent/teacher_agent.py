@@ -14,7 +14,7 @@ class TeacherAgent(BaseAgent):
         ):
         super().__init__(state_space, action_space)
         self.explr_magnitude = 0
-        self.c = 40
+        self.c = c
 
         self.brain = DDPGAgent.load_pretrained_agent(
             state_space=state_space,
@@ -47,3 +47,6 @@ class TeacherAgent(BaseAgent):
     
     def save_model(self, filepath:str):
         print('Teacher agent. Nothing to save')
+    
+    def modify_exploration_magnitude(self, factor, mode='increment'):
+        pass

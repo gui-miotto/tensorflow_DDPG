@@ -140,11 +140,11 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=TeacherAgent,
+            hi_agent_cls=DummyAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
             #c=1,
-            c=30,
+            c=1,
             #c=n_steps,
             )
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     ensure_path(saved_models_dir)
 
     # Fixing seed for comparing features
-    np.random.seed(0)
+    # np.random.seed(0)
 
     train_agent(n_steps=args.steps, render=RENDER)
     #test_agent()

@@ -22,16 +22,15 @@ class DummyAgent(BaseAgent):
 
     def act(self, state, explore=False):
         assert not np.isnan(state).any()
-        #return np.zeros(shape=(1, self.action_space.shape[1]))
-        action = -state / self.action_space.high
-        return action
+        return np.zeros(shape=(1, self.action_space.shape[0]))
+        #action = -state / self.action_space.high
+        #return action
 
-        
     def train(self,**kwargs):
         return 0, None
     
     def save_model(self, filepath:str):
         print('Dummy agent. Nothing to save')
 
-
-
+    def modify_exploration_magnitude(self, factor, mode='increment'):
+        pass

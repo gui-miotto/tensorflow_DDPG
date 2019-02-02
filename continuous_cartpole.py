@@ -103,7 +103,7 @@ class ContinuousCartPoleEnv(gym.Env):
         cartheight = 30.0
         arrowwidth = 7.0
         arrowlenmax = 2*cartwidth
-        max_cart_vel = 10.0 # TODO: deal with this hardcode
+        max_cart_vel = 5.0 # TODO: deal with this hardcode
         max_pole_vel = 10.0 # TODO: deal with this hardcode
 
         if self.viewer is None:
