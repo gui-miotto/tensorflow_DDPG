@@ -7,6 +7,7 @@ from bipedal_walker import BipedalWalker
 
 from ddpg_agent.ddpg_agent import DDPGAgent
 from ddpg_agent.dummy_agent import DummyAgent
+from teacher_agent.teacher_agent import TeacherAgent
 from meta_agent import MetaAgent
 from tensorboard_evaluation import Evaluation
 
@@ -139,10 +140,11 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=DummyAgent,
+            hi_agent_cls=TeacherAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
-            c=1,
+            #c=1,
+            c=40,
             #c=n_steps,
             )
 
@@ -184,6 +186,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
 
             if HIERARCHY:
                 agent.goal = agent.goal_transition(agent.goal, state, next_state)
+                #goal_state = np.squeeze(next_state + agent.goal)
 
             if hi_loss is not None:
                 hi_steps += 1
@@ -314,4 +317,11 @@ if __name__ == "__main__":
     np.random.seed(0)
 
     train_agent(n_steps=args.steps, render=RENDER)
-    test_agent()
+    #test_agent()
+
+
+
+
+
+
+

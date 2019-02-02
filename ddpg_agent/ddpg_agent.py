@@ -172,8 +172,6 @@ class DDPGAgent(HiAgent):
 
         # off policy correction / relabelling!
         if relabeller is not None:
-            test = batch.actions.shape[0]
-
             for i in range(batch.actions.shape[0]): #TODO make r_g fn accept batches
                 batch.actions[i] = relabeller(
                     orig_hi_action=batch.actions[i],
@@ -195,8 +193,6 @@ class DDPGAgent(HiAgent):
         # behaviour_actions = self.actor_behaviour.predict(self.reshape_input(batch.states_before))
         behaviour_actions = self.actor_behaviour.predict(batch.states_before)
         session.run([self.train_actor_op], {
-            # self.critic_behaviour.input: self.reshape_input(batch.states_before, behaviour_actions),
-            # self.actor_behaviour.input: self.reshape_input(batch.states_before)
             self.critic_behaviour.input: np.concatenate((batch.states_before, behaviour_actions), axis=1),
             self.actor_behaviour.input: batch.states_before
         })

@@ -22,9 +22,10 @@ class DummyAgent(BaseAgent):
 
     def act(self, state, explore=False):
         assert not np.isnan(state).any()
-        action = np.zeros(shape=(1, self.action_space.shape[0])) 
-        action[0,2] = -state[0,2] / np.pi
+        #return np.zeros(shape=(1, self.action_space.shape[1]))
+        action = -state / self.action_space.high
         return action
+
         
     def train(self,**kwargs):
         return 0, None

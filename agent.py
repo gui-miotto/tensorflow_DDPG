@@ -20,12 +20,12 @@ class BaseAgent:
         #should work with batches of actions (as required for goal relabelling)
         
         #now need to scale up to cover the action space...
-        action = np.multiply(action, (self.action_space.high - self.action_space.low) / 2)
+        res_action = np.multiply(action, (self.action_space.high - self.action_space.low) / 2)
 
         # ...and translate to center of action space
-        action = np.add(action, (self.action_space.high + self.action_space.low) / 2)
+        res_action = np.add(res_action, (self.action_space.high + self.action_space.low) / 2)
 
-        return action
+        return res_action
 
     def train(self,
               state,

@@ -68,6 +68,7 @@ class MetaAgent(BaseAgent):
                 discount_factor=0.99,
                 n_units=[256, 128, 64],
                 weights_stdev=0.03,
+                c=c
                 )
 
             # low level agent's states will be (state, goal) concatenated
@@ -82,7 +83,7 @@ class MetaAgent(BaseAgent):
                 )
         else:
             self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
-                state_space=state_space, action_space=self.hi_action_space)
+                state_space=state_space, action_space=self.hi_action_space, c=c)
 
             self.lo_agent = lo_agent_cls.load_pretrained_agent(filepath=models_dir + '/lo_agent',
                 state_space=self.lo_state_space, action_space=action_space)
@@ -116,7 +117,7 @@ class MetaAgent(BaseAgent):
 
         normalized_differences = np.abs(difference) / (self.hi_action_space.high - self.hi_action_space.low)
 
-        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1]) # ** 2 #removed the square. ask gui why
+        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1])
 
         return final_reward
 
