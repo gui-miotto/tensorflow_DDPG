@@ -144,7 +144,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
             #c=1,
-            c=40,
+            c=30,
             #c=n_steps,
             )
 

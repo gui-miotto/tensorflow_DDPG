@@ -195,7 +195,7 @@ class MetaAgent(BaseAgent):
             action=action,
             reward=self.lo_reward,
             next_state=np.concatenate([next_state, next_goal], axis=1),
-            done=lo_done or done) # TODO remove this done?!
+            done=lo_done)
 
         # is it time to train the HL agent?
         hi_loss = None
