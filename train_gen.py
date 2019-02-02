@@ -306,7 +306,7 @@ if __name__ == "__main__":
     #override here for ease of testing
     # COMPLEXENV = True
     HIERARCHY = True
-    RENDER = True
+    #RENDER = True
 
     saved_models_dir = os.path.join('.','saved_models')
     ensure_path(saved_models_dir)
