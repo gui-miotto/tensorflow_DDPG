@@ -62,7 +62,7 @@ def test_agent(n_episodes: int=10, render: bool=True):
             agent.reset_clock()
 
         for steps in range(MAX_STEPS_PER_EP):
-            action = agent.act(state, explr_mode="no_exploration")
+            action = agent.act(state)
 
             if render:
                 if not HIERARCHY:
@@ -142,7 +142,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
             hi_agent_cls=DDPGAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
-            c=5,
+            c=10,
             #c=n_steps,
             )
 
@@ -158,7 +158,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
 
         while not done and steps < MAX_STEPS_PER_EP:
             steps += 1
-            action = agent.act(state=state, explr_mode="gaussian")
+            action = agent.act(state=state)
 
             if HIERARCHY:
                 goal_state = np.squeeze(state + agent.goal)

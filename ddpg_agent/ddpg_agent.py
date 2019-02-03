@@ -21,6 +21,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
+        exploration_mode="gaussian",
         exploration_magnitude=0.4,
         exploration_magnitude_min=0.05,
         exploration_decay=0.9999,
@@ -35,6 +36,7 @@ class DDPGAgent(HiAgent):
         self.train_actor_op = train_actor_op
         self.discount_factor = discount_factor
         self.tau = tau
+        self.explr_mode = exploration_mode
         self.explr_magnitude = exploration_magnitude
         self.explr_magnitude_min = exploration_magnitude_min
         self.explr_decay = exploration_decay
@@ -112,21 +114,23 @@ class DDPGAgent(HiAgent):
             critic_behaviour=crit_behav, critic_target=crit_targ, **kwargs)
 
 
-    def act(self, state, explr_mode="no_exploration"):
+    def act(self, state):
         # action = self.actor_behaviour.predict(self.reshape_input(state))[0]
         assert not np.isnan(state).any()
         action = self.actor_behaviour.predict(state) #tanh'd (-1, 1)
         
-        if explr_mode != "no_exploration":
-            if explr_mode == "ou_noise":
+        if self.explr_mode != "no_exploration":
+            if self.explr_mode == "ou_noise":
                 noise = self.ou_noise.noise()
                 action = (1-self.explr_magnitude)*action + noise * self.explr_magnitude
-            elif explr_mode == "gaussian":
+            elif self.explr_mode == "gaussian":
                 noise = np.random.normal(scale=self.explr_magnitude, size=action.shape)
                 action += noise
-            elif explr_mode == "rough_explore":
+            elif self.explr_mode == "rough_explore": # explore extreme values
                 if np.random.rand() < self.explr_magnitude:
-                    action = 1 - 2 * np.random.randint(0, 2, size=action.shape)
+                    action = 1 - 2 * np.random.randint(0, 2, size=action.shape) # Array with random -1 or 1
+                    noise = np.abs(np.random.normal(scale=0.2, size=action.shape)) # A bit of noise
+                    action = action - np.sign(action) * noise # Put them together
             else:
                 raise Exception('Invalid exploration method')
             if self.explr_magnitude > self.explr_magnitude_min:

@@ -63,8 +63,9 @@ class MetaAgent(BaseAgent):
                 state_space=state_space,
                 action_space=self.hi_action_space,
                 use_long_buffer=True,
-                exploration_magnitude=0.2, 
-                exploration_decay = 0.999995,
+                exploration_mode="rough_explore",
+                exploration_magnitude=0.7, 
+                exploration_decay = 0.99995,
                 exploration_magnitude_min = 0.001,
                 discount_factor=0.99,
                 n_units=[256, 128, 64],
@@ -76,18 +77,19 @@ class MetaAgent(BaseAgent):
             self.lo_agent = lo_agent_cls.new_trainable_agent(
                 state_space=self.lo_state_space, 
                 action_space=action_space, 
+                exploration_mode="gaussian",
                 exploration_magnitude=2.0,
-                exploration_decay = 0.99999,
+                exploration_decay = 0.9999995,
                 discount_factor=0.95,
                 n_units=[128, 64],
                 weights_stdev=0.001,
                 )
         else:
             self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
-                state_space=state_space, action_space=self.hi_action_space, c=c)
+                state_space=state_space, action_space=self.hi_action_space, c=c, exploration_mode="no_exploration")
 
             self.lo_agent = lo_agent_cls.load_pretrained_agent(filepath=models_dir + '/lo_agent',
-                state_space=self.lo_state_space, action_space=action_space)
+                state_space=self.lo_state_space, action_space=action_space, exploration_mode="no_exploration")
 
         # we won't need networks etc here
 
@@ -127,14 +129,14 @@ class MetaAgent(BaseAgent):
         self.lo_agent.modify_exploration_magnitude(factor=factor, mode=mode)
 
 
-    def act(self, state, explr_mode="no_exploration"):
+    def act(self, state):
 
         # is it time for a high-level action?
         if self.t % self.c == 0:
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state, explr_mode) #this will be in (-1
+            self.hi_action = self.hi_agent.act(state) #this will be in (-1
             self.goal = self.hi_agent.scale_action(self.hi_action)
 
             # save for later training
@@ -145,9 +147,7 @@ class MetaAgent(BaseAgent):
         # action in environment comes from low level agent
         goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
         
-        lo_action = self.lo_agent.act(
-            state=np.concatenate([state, goal_broadcast], axis=1), 
-            explr_mode=explr_mode)
+        lo_action = self.lo_agent.act(state=np.concatenate([state, goal_broadcast], axis=1))
         
         # This is just useful for training, right? Should this be inside train()?
         # No. Because we want the unscaled action. Is that it?
