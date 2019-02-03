@@ -3,6 +3,9 @@ import numpy as np
 from ddpg_agent.ddpg_agent import DDPGAgent
 from tensorboard_evaluation import Evaluation
 
+solved_score = 1000
+
+
 def ensure_path(p):
     if not os.path.exists(p):
         os.mkdir(p)
@@ -12,14 +15,13 @@ def train_agent(n_steps: int=500000, render: bool=False, early_stop=True):
     ensure_path(tensorboard_path)
     train_dict_keys = ["score", "loss", "expl"]
     tensorboard = Evaluation(tensorboard_path, train_dict_keys)
-    
+
     env = gym.make('Ant-v2')
 
     # create new naive agent
     agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space,
         action_space = env.action_space,
-        exploration_mode="gaussian",
         exploration_magnitude=2.,
         exploration_decay=0.99999,
         learning_rate_actor=0.0001,
@@ -37,7 +39,7 @@ def train_agent(n_steps: int=500000, render: bool=False, early_stop=True):
 
         while not done and steps < MAX_STEPS_PER_EP:
             steps += 1
-            action = agent.act(state=state)
+            action = agent.act(state=state, explr_mode="gaussian")
 
             if render:
                 env.render()
@@ -102,25 +104,33 @@ def train_agent(n_steps: int=500000, render: bool=False, early_stop=True):
         
         if ep % 100 == 0:
             agent.save_model(saved_models_dir)
+    
+        #Early stop test
+        if early_stop and score > 0.8 * solved_score:
+            print(f'\n\n The agent reached a score of {score} while training. It is now eligible for an early stop test.')
+            print('Initiating tests...')
+            agent.save_model(saved_models_dir)
+            if isSolved(min_score=solved_score):
+                return
 
     agent.save_model(saved_models_dir)
 
 def test_agent(n_episodes: int=10, render: bool=True):
     env = gym.make('Ant-v2')
 
-    # create new naive agent
     agent = DDPGAgent.load_pretrained_agent(
         filepath=saved_models_dir,
         state_space=env.observation_space,
         action_space = env.action_space,
     )
-
+    
+    all_scores = []
     for ep in range(n_episodes):
         done, steps, score = False, 0, 0
         state = np.expand_dims(env.reset(), axis=0)
         while not done:
             
-            action = agent.act(state=state)
+            action = agent.act(state=state, explr_mode="no_exploration")
 
             if render:
                 env.render()
@@ -131,11 +141,22 @@ def test_agent(n_episodes: int=10, render: bool=True):
             score += reward
             steps += 1
         
+        all_scores.append(score)
         print(f'Episode {ep} of {n_episodes}. score: {score}, steps: {steps}')
+    return all_scores
+
+def isSolved(n_episodes=100, min_score=1800):
+    all_scores = test_agent(n_episodes=n_episodes, render=False)
+    average_score = np.mean(all_scores)
+    solved = average_score >= min_score
+    neg = 'not ' if not solved else ' '
+    print (f'\nProblem{neg}solved.')
+    print (f'Mean score over {n_episodes} episodes: {average_score}')
+    return solved
 
 
 if __name__ == "__main__":
     MAX_STEPS_PER_EP = 1000
     saved_models_dir = os.path.join('.','ant_models')
-    train_agent(n_steps=500000)
-    #test_agent()
+    train_agent(n_steps=1000000)
+    test_agent()
