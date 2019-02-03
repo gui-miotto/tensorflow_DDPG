@@ -21,7 +21,7 @@ class DDPGAgent(HiAgent):
         train_actor_op: tf.Tensor=None,
         discount_factor=0.99,
         tau=0.001,
-        exploration_mode="gaussian",
+        exploration_mode="no_exploration",
         exploration_magnitude=0.4,
         exploration_magnitude_min=0.05,
         exploration_decay=0.9999,

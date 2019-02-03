@@ -125,6 +125,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = DDPGAgent.new_trainable_agent(
         state_space=env.observation_space,
         action_space = env.action_space,
+        exploration_mode="gaussian",
         exploration_magnitude=2.,
         exploration_decay=0.99999,
         learning_rate_actor=0.001,
