@@ -64,7 +64,7 @@ class MetaAgent(BaseAgent):
                 action_space=self.hi_action_space,
                 use_long_buffer=True,
                 exploration_magnitude=0.2, 
-                exploration_decay = 0.999999,
+                exploration_decay = 0.999995,
                 exploration_magnitude_min = 0.001,
                 discount_factor=0.99,
                 n_units=[256, 128, 64],
