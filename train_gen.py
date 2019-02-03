@@ -142,7 +142,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
             hi_agent_cls=TeacherAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
-            c=1,
+            c=5,
             #c=n_steps,
             )
 
@@ -181,7 +181,6 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
 
             if HIERARCHY:
                 agent.goal = agent.goal_transition(agent.goal, state, next_state)
-                #goal_state = np.squeeze(next_state + agent.goal)
 
             if hi_loss is not None:
                 hi_steps += 1
