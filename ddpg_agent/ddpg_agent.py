@@ -24,6 +24,7 @@ class DDPGAgent(HiAgent):
         exploration_magnitude=0.4,
         exploration_magnitude_min=0.05,
         exploration_decay=0.9999,
+        **kwargs,
         ):
         super().__init__(state_space, action_space)
         self.actor_behaviour = actor_behaviour

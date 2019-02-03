@@ -13,7 +13,7 @@ from tensorboard_evaluation import Evaluation
 
 # for CCP and bipedal respectively
 # calculated from inspection / sampling
-HI_ACTION_LIMITS = [[1.2, 3, np.pi, 10],
+HI_ACTION_LIMITS = [[0.4, 0.6, np.pi/4, 3],
                     [
                         1.93463567, 0.184130755, 0.350053925, 0.32318072,
                         1.025671095, 1.182890775, 1.236717375, 1.17722261, 0.5,
@@ -139,7 +139,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
         agent = MetaAgent(
             env.observation_space,
             env.action_space,
-            hi_agent_cls=TeacherAgent,
+            hi_agent_cls=DDPGAgent,
             lo_agent_cls=DDPGAgent,
             hi_action_space=hi_action_space,
             c=5,
@@ -174,6 +174,7 @@ def train_agent(n_steps: int=500000, render: bool=True, early_stop=True):
 
             if steps >= MAX_STEPS_PER_EP:
                 reward -= 1
+                done = True #TODO Is this reasonable?
 
             lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
             # this is the single loss if DDPG, or the lo_loss if hierarchical
