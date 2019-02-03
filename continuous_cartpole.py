@@ -103,8 +103,8 @@ class ContinuousCartPoleEnv(gym.Env):
         cartheight = 30.0
         arrowwidth = 7.0
         arrowlenmax = 2*cartwidth
-        max_cart_vel = 5.0 # TODO: deal with this hardcode
-        max_pole_vel = 10.0 # TODO: deal with this hardcode
+        max_cart_vel = 5.0 
+        max_pole_vel = 10.0
 
         if self.viewer is None:
             from gym.envs.classic_control import rendering
@@ -214,7 +214,7 @@ class ContinuousCartPoleEnv(gym.Env):
         if goal_state is not None:
             cartx_goal = goal_state[0]*scale+screen_width/2.0 # MIDDLE OF CART
             self.carttrans_goal.set_translation(cartx_goal, carty)
-            self.poletrans_goal.set_rotation(-goal_state[2]) # TODO
+            self.poletrans_goal.set_rotation(-goal_state[2])
 
             # Cart velocity goal ARROW
             self.goal_cart_arrow_trans.set_translation(cartx_goal, carty)

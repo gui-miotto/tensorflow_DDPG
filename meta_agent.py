@@ -31,9 +31,9 @@ class MetaAgent(BaseAgent):
 
         self.hi_state = None  # state in which HL agent last took an action
 
-        self.hi_action = None # HL agent's actions in (-1, 1) space (direct from network)
-        self.goal = None # HL agent's actions translated to (low, high) space
-        self.lo_reward = None # so that this can be retrieved for score display
+        self.hi_action = None  # HL agent's actions in (-1, 1) space (direct from network)
+        self.goal = None  # HL agent's actions translated to (low, high) space
+        self.lo_reward = None  # so that this can be retrieved for score display
 
         # these will record sequences necessary for off-policy relabelling later
         self.lo_action_seq = np.empty((c, *action_space.shape))
@@ -48,7 +48,7 @@ class MetaAgent(BaseAgent):
             self.hi_action_space = deepcopy(state_space)
         else:
             #clipping!
-            self.hi_action_space = hi_action_space            
+            self.hi_action_space = hi_action_space
 
         # figure out if any of the states are angles in (-pi, pi)
         # so that we can calculate distances between them properly in the intrinsic reward function
@@ -64,32 +64,38 @@ class MetaAgent(BaseAgent):
                 action_space=self.hi_action_space,
                 use_long_buffer=True,
                 exploration_mode="rough_explore",
-                exploration_magnitude=0.7, 
-                exploration_decay = 0.99995,
-                exploration_magnitude_min = 0.001,
+                exploration_magnitude=0.7,
+                exploration_decay=0.99995,
+                exploration_magnitude_min=0.001,
                 discount_factor=0.99,
                 n_units=[256, 128, 64],
                 weights_stdev=0.001,
-                c=c
-                )
+                c=c)
 
             # low level agent's states will be (state, goal) concatenated
             self.lo_agent = lo_agent_cls.new_trainable_agent(
-                state_space=self.lo_state_space, 
-                action_space=action_space, 
+                state_space=self.lo_state_space,
+                action_space=action_space,
                 exploration_mode="gaussian",
                 exploration_magnitude=2.0,
-                exploration_decay = 0.9999995,
+                exploration_decay=0.9999995,
                 discount_factor=0.95,
                 n_units=[128, 64],
                 weights_stdev=0.001,
-                )
+            )
         else:
-            self.hi_agent = hi_agent_cls.load_pretrained_agent(filepath=models_dir + '/hi_agent',
-                state_space=state_space, action_space=self.hi_action_space, c=c, exploration_mode="no_exploration")
+            self.hi_agent = hi_agent_cls.load_pretrained_agent(
+                filepath=models_dir + '/hi_agent',
+                state_space=state_space,
+                action_space=self.hi_action_space,
+                c=c,
+                exploration_mode="no_exploration")
 
-            self.lo_agent = lo_agent_cls.load_pretrained_agent(filepath=models_dir + '/lo_agent',
-                state_space=self.lo_state_space, action_space=action_space, exploration_mode="no_exploration")
+            self.lo_agent = lo_agent_cls.load_pretrained_agent(
+                filepath=models_dir + '/lo_agent',
+                state_space=self.lo_state_space,
+                action_space=action_space,
+                exploration_mode="no_exploration")
 
         # we won't need networks etc here
 
@@ -107,27 +113,27 @@ class MetaAgent(BaseAgent):
         """
         a reward function for the LoAgent as defined in HIRO paper, eqn (3)
 
-        difference: here we define goal as a state, not an increment (todo? does it matter?)
         note: action does not figure in the formula - this is apparently deliberate
         """
         # difference = np.abs(goal - next_state)
-        difference = np.abs(state + goal - next_state) #now an increment
+        difference = np.abs(state + goal - next_state)  #now an increment
 
         # so that diff between np.pi, -np.pi = 0 for angles
         difference = np.where(self.state_space_angles,
                               ((difference + np.pi) % (2 * np.pi)) - np.pi,
                               difference)
 
-        normalized_differences = np.abs(difference) / (self.hi_action_space.high - self.hi_action_space.low)
+        normalized_differences = np.abs(difference) / (
+            self.hi_action_space.high - self.hi_action_space.low)
 
-        final_reward = np.linalg.norm(1 - normalized_differences) /np.sqrt(state.shape[1])
+        final_reward = np.linalg.norm(1 - normalized_differences) / np.sqrt(
+            state.shape[1])
 
         return final_reward
 
     def modify_exploration_magnitude(self, factor, mode='increment'):
         self.hi_agent.modify_exploration_magnitude(factor=factor, mode=mode)
         self.lo_agent.modify_exploration_magnitude(factor=factor, mode=mode)
-
 
     def act(self, state):
 
@@ -136,23 +142,25 @@ class MetaAgent(BaseAgent):
             self.t = 0
 
             # HL agent picks a new state from space and sets it as LL's goal
-            self.hi_action = self.hi_agent.act(state) #this will be in (-1
+            self.hi_action = self.hi_agent.act(state)  #this will be in (-1
             self.goal = self.hi_agent.scale_action(self.hi_action)
 
             # save for later training
             self.hi_state = state
 
-        # UPDATE: goal is now an increment. See train() for goal transition - we need next_state available, so we can't do it here
-
         # action in environment comes from low level agent
-        goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
-        
-        lo_action = self.lo_agent.act(state=np.concatenate([state, goal_broadcast], axis=1))
-        
+        goal_broadcast = np.broadcast_to(
+            self.goal,
+            state.shape)  #add a batch dimension just in case it's not there
+
+        lo_action = self.lo_agent.act(
+            state=np.concatenate([state, goal_broadcast], axis=1))
+
         # This is just useful for training, right? Should this be inside train()?
         # No. Because we want the unscaled action. Is that it?
         self.lo_state_seq[self.t] = state
-        self.lo_action_seq[self.t] = lo_action #unscaled - still tanh space. good!
+        self.lo_action_seq[self.
+                           t] = lo_action  #unscaled - still tanh space. good!
 
         self.t += 1
 
@@ -164,12 +172,11 @@ class MetaAgent(BaseAgent):
         self.hi_rewards += reward
 
         # provide LL agent with intrinsic reward
-        self.lo_reward = self.intrinsic_reward(state=state, goal=self.goal, action=action, next_state=next_state)
+        self.lo_reward = self.intrinsic_reward(
+            state=state, goal=self.goal, action=action, next_state=next_state)
 
         # now transition the goal in preparation for the next act() step
-        # old_goal = self.goal
-        # self.goal = self.goal_transition(self.goal, state, next_state)
-        
+
         # print("Transition: ", state, "g", goal, "s+g" state + goal)
         # is it the end of a sub-episode?
         # note, sequence is: lo.act(), t++, lo.train().
@@ -183,14 +190,6 @@ class MetaAgent(BaseAgent):
         # (st, gt, at, rt, st+1, h(st, gt, st+1))
         # for off-policy training.
 
-        #if self.t % self.c != 0:
-        #    next_goal = self.goal_transition(self.goal, state, next_state)
-        #    lo_done = False
-        #else:
-        #    next_goal = self.hi_agent.act(next_state, "no_exploration") 
-        #    next_goal = self.hi_agent.scale_action(next_goal)
-        #    lo_done = True
-
         lo_loss, _ = self.lo_agent.train(
             state=np.concatenate([state, self.goal], axis=1),
             action=action,
@@ -203,7 +202,7 @@ class MetaAgent(BaseAgent):
         if self.t % self.c == 0:
             hi_loss, _ = self.hi_agent.train(
                 state=self.hi_state,
-                action=self.hi_action, #(-1, 1)
+                action=self.hi_action,  #(-1, 1)
                 reward=self.hi_rewards,
                 next_state=next_state,
                 done=done,
@@ -218,8 +217,8 @@ class MetaAgent(BaseAgent):
         return lo_loss, hi_loss
 
     @staticmethod
-    def relabel_hi_action(orig_hi_action, goal_scaler, lo_state_seq, lo_action_seq,
-                     lo_current_policy):
+    def relabel_hi_action(orig_hi_action, goal_scaler, lo_state_seq,
+                          lo_action_seq, lo_current_policy):
         """
         this will be used internally by the HiAgent in its train() routine
         where, at some point, we should have
@@ -228,7 +227,7 @@ class MetaAgent(BaseAgent):
             else: 
                 transition_tuple = ...
 
-        Note: this currently only works with individual tuples, not minibatches of them (todo?)
+        Note: this currently only works with individual tuples, not minibatches of them
 
         Parameters
         ----------
@@ -247,7 +246,7 @@ class MetaAgent(BaseAgent):
         """
 
         # get variance from observed states
-        stdev_goal = np.std(lo_state_seq, axis=0)  #todo - cov instead
+        stdev_goal = np.std(lo_state_seq, axis=0)  #in future - cov instead?
 
         # eight candidate goals sampled randomly from a Gaussian centered at s_t+c − s_t
         # i.e. around the original goal
@@ -256,14 +255,15 @@ class MetaAgent(BaseAgent):
 
         candidate_hi_actions = np.random.normal(
             loc=orig_hi_action,
-            scale=(1/3), #since we're in (1/1) space...
+            scale=(1 / 3),  #since we're in (1/1) space...
             size=(n_candidate_hi_acts, *orig_hi_action.shape))
 
         # also include the original hi_action gt
         candidate_hi_actions = np.concatenate([
             candidate_hi_actions,
             np.expand_dims(orig_hi_action, axis=0),
-        ], axis=0)
+        ],
+                                              axis=0)
 
         candidate_goals = goal_scaler(candidate_hi_actions)
 
@@ -272,32 +272,28 @@ class MetaAgent(BaseAgent):
         candidate_goals = np.concatenate([
             candidate_goals,
             np.expand_dims(lo_state_seq[-1] - lo_state_seq[0], axis=0)
-        ], axis=0)
+        ],
+                                         axis=0)
 
         lo_policy_likelihoods = []
 
-        # running this as a for loop is not quite optimal -- todo later
         for g in range(n_candidate_hi_acts + 2):
 
-            lo_state_deltas = np.subtract(
-                lo_state_seq,
-                lo_state_seq[0])
+            lo_state_deltas = np.subtract(lo_state_seq, lo_state_seq[0])
 
-            goal_over_time = np.broadcast_to(candidate_goals[g], shape=lo_state_seq.shape) - lo_state_deltas
+            goal_over_time = np.broadcast_to(
+                candidate_goals[g], shape=lo_state_seq.shape) - lo_state_deltas
 
             # transform the (state) c-tuple into a (state, goal) c-tuple
-            # shape = (c, 2, *state_shape)
-            lo_stategoal_seq = np.concatenate([
-                lo_state_seq,
-                goal_over_time
-            ], axis=1)
+            lo_stategoal_seq = np.concatenate([lo_state_seq, goal_over_time],
+                                              axis=1)
 
             # what actions would the current LoAgent take, given goal g?
             lo_current_actions = lo_current_policy(lo_stategoal_seq)
 
             # how far do they diverge from the actual actions, given original goal?
-            # shape = (c, *action_shape)
-            lo_sq_difference = np.linalg.norm(lo_action_seq - lo_current_actions, axis=1)**2
+            lo_sq_difference = np.linalg.norm(
+                lo_action_seq - lo_current_actions, axis=1)**2
 
             lo_neg_sum_sq_diff = -1 * np.sum(lo_sq_difference, axis=0)
 
@@ -308,6 +304,6 @@ class MetaAgent(BaseAgent):
 
         return candidate_goals[likeliest_goal]
 
-    def save_model(self, filepath:str):
+    def save_model(self, filepath: str):
         self.hi_agent.save_model(filepath + '/hi_agent')
         self.lo_agent.save_model(filepath + '/lo_agent')

@@ -47,9 +47,6 @@ def train_agent(n_steps: int=500000, render: bool=False, early_stop=True):
             next_state, reward, done, _ = env.step(np.squeeze(action, axis=0))
             next_state = np.expand_dims(next_state, axis=0)
 
-            #if steps >= MAX_STEPS_PER_EP:
-            #    reward -= 1
-
             lo_loss, hi_loss = agent.train(state, action, reward, next_state, done)
             # this is the single loss if DDPG, or the lo_loss if hierarchical
             lo_loss_sum += (1 / steps) * (lo_loss - lo_loss_sum) # avoids need to divide by num steps at end
