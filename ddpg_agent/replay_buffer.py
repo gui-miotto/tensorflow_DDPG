@@ -2,13 +2,21 @@ from typing import List
 from collections import namedtuple, deque
 import numpy as np
 
-ReplayBatch = namedtuple('ReplayBatch', ['states_before', 'actions', 'states_after', 'rewards','done_flags'])
+ReplayBatch = namedtuple(
+    'ReplayBatch',
+    ['states_before', 'actions', 'states_after', 'rewards', 'done_flags'])
 
-ReplayBatchLong = namedtuple('ReplayBatch', ['states_before', 'actions', 'states_after', 'rewards','done_flags', 'lo_state_seqs', 'lo_action_seqs'])
+ReplayBatchLong = namedtuple('ReplayBatch', [
+    'states_before', 'actions', 'states_after', 'rewards', 'done_flags',
+    'lo_state_seqs', 'lo_action_seqs'
+])
 
 
 class ReplayBuffer():
-    def __init__(self, buffer_size: int=10000, batch_size: int=100, use_long: bool=False):
+    def __init__(self,
+                 buffer_size: int = 10000,
+                 batch_size: int = 100,
+                 use_long: bool = False):
         """
         Buffer will keep the most recent 'buffer_size' transitions
         Batches given by the function 'sample_batch()' will have length 'batch_size'
@@ -27,7 +35,14 @@ class ReplayBuffer():
             self.lo_state_seqs = []
             self.lo_action_seqs = []
 
-    def add(self, state_before: List[float], action: int, state_after: List[float], reward: float, done_flag: bool, lo_state_seq=None, lo_action_seq=None):
+    def add(self,
+            state_before: List[float],
+            action: int,
+            state_after: List[float],
+            reward: float,
+            done_flag: bool,
+            lo_state_seq=None,
+            lo_action_seq=None):
         """
         Add a new transition to the buffer
         """
@@ -59,7 +74,7 @@ class ReplayBuffer():
         """
         return len(self.done_flags)
 
-    def sample_batch(self) : #-> ReplayBatch:
+    def sample_batch(self):  #-> ReplayBatch:
         """
         Returns a batch of transtions sampled from the buffer
         """
@@ -78,28 +93,37 @@ class ReplayBuffer():
             ac.append(self.actions[p])
             sa.append(self.states_after[p])
             rw.append(self.rewards[p])
-            df.append(self.done_flags[p])  
+            df.append(self.done_flags[p])
 
         sb = np.array(sb)
         ac = np.array(ac)
         sa = np.array(sa)
         rw = np.array(rw)
         df = np.array(df)
-        
+
         if self.use_long:
             lss = []
             las = []
-        
+
             for p in pick:
                 lss.append(self.lo_state_seqs[p])
-                las.append(self.lo_action_seqs[p]) 
+                las.append(self.lo_action_seqs[p])
 
             lss = np.array(lss)
             las = np.array(las)
 
-            return ReplayBatchLong(states_before=sb, actions=ac, states_after=sa, rewards=rw, done_flags=df, lo_state_seqs=lss, lo_action_seqs=las)
-        
-        return ReplayBatch(states_before=sb, actions=ac, states_after=sa, rewards=rw, done_flags=df)
+            return ReplayBatchLong(
+                states_before=sb,
+                actions=ac,
+                states_after=sa,
+                rewards=rw,
+                done_flags=df,
+                lo_state_seqs=lss,
+                lo_action_seqs=las)
 
-
-
+        return ReplayBatch(
+            states_before=sb,
+            actions=ac,
+            states_after=sa,
+            rewards=rw,
+            done_flags=df)

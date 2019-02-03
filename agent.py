@@ -18,12 +18,14 @@ class BaseAgent:
     def scale_action(self, action):
         """input: action as a tanh in (-1, 1)"""
         #should work with batches of actions (as required for goal relabelling)
-        
+
         #now need to scale up to cover the action space...
-        res_action = np.multiply(action, (self.action_space.high - self.action_space.low) / 2)
+        res_action = np.multiply(
+            action, (self.action_space.high - self.action_space.low) / 2)
 
         # ...and translate to center of action space
-        res_action = np.add(res_action, (self.action_space.high + self.action_space.low) / 2)
+        res_action = np.add(
+            res_action, (self.action_space.high + self.action_space.low) / 2)
 
         return res_action
 
@@ -35,7 +37,6 @@ class BaseAgent:
               done: bool,
               relabel=False):
         raise NotImplementedError
-
 
 
 class HiAgent(BaseAgent):
@@ -77,6 +78,7 @@ class Pigeon(HiAgent):
     """
     a stupid agent for testing purposes
     """
+
     def act(self, state, explore=False):
 
         return np.random.uniform(self.action_space.low, self.action_space.high)
@@ -94,6 +96,7 @@ class Pigeon(HiAgent):
 
         if relabel:
             # just to make sure this method functions as it should
-            relabeled_goal = self.relabel_goal(action, lo_state_seq, lo_action_seq, lo_current_policy)
+            relabeled_goal = self.relabel_goal(
+                action, lo_state_seq, lo_action_seq, lo_current_policy)
 
         pass

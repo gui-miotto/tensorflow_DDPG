@@ -3,19 +3,19 @@ from ddpg_agent.replay_buffer import ReplayBuffer
 import numpy as np
 import os
 
+
 class DummyAgent(BaseAgent):
-    def __init__(self, 
-        state_space: 'Box'=None, 
-        action_space: 'Box'=None,
-        **kwargs
-        ):
+    def __init__(self,
+                 state_space: 'Box' = None,
+                 action_space: 'Box' = None,
+                 **kwargs):
         super().__init__(state_space, action_space)
         self.explr_magnitude = 0
 
     @classmethod
     def new_trainable_agent(cls, **kwargs) -> 'DummyAgent':
         return DummyAgent(**kwargs)
-    
+
     @classmethod
     def load_pretrained_agent(cls, **kwargs) -> 'DummyAgent':
         return DummyAgent(**kwargs)
@@ -26,10 +26,10 @@ class DummyAgent(BaseAgent):
         action = -state / self.action_space.high
         return action
 
-    def train(self,**kwargs):
+    def train(self, **kwargs):
         return 0, None
-    
-    def save_model(self, filepath:str):
+
+    def save_model(self, filepath: str):
         print('Dummy agent. Nothing to save')
 
     def modify_exploration_magnitude(self, factor, mode='increment'):
