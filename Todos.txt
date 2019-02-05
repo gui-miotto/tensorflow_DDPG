@@ -1,6 +1,0 @@
-
-Do we need this?
-goal_broadcast = np.broadcast_to(self.goal, state.shape) #add a batch dimension just in case it's not there
-
-
-
